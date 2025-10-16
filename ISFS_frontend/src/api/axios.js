@@ -5,7 +5,11 @@ const instance = axios.create({
 });
 
 instance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  // Check for farmer token first, then admin token
+  const farmerToken = localStorage.getItem("token");
+  const adminToken = localStorage.getItem("adminToken");
+  
+  const token = farmerToken || adminToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });

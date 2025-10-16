@@ -8,25 +8,44 @@ const router = express.Router();
 // 🟢 Register
 router.post("/register", async (req, res) => {
   const { name, phone, address, password } = req.body;
-  if (!name || !phone || !password)
-    return res.status(400).json({ message: "Missing required fields" });
+  
+  console.log("Registration attempt:", { name, phone, address: address ? "provided" : "missing" });
+  
+  if (!name || !phone || !password) {
+    return res.status(400).json({ message: "Missing required fields: name, phone, and password are required" });
+  }
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const connection = await getConnection();
 
+    // Check if phone number already exists
+    const existingFarmer = await connection.execute(
+      `SELECT FARMER_ID FROM FARMER WHERE PHONE = :phone`,
+      { phone }
+    );
+
+    if (existingFarmer.rows.length > 0) {
+      await connection.close();
+      return res.status(400).json({ message: "Phone number already registered" });
+    }
+
     const result = await connection.execute(
       `INSERT INTO FARMER (FARMER_ID, NAME, PHONE, ADDRESS, PASSWORD)
        VALUES (FARMER_SEQ.NEXTVAL, :name, :phone, :address, :password)`,
-      { name, phone, address, password: hashedPassword },
+      { name, phone, address: address || '', password: hashedPassword },
       { autoCommit: true }
     );
 
     await connection.close();
     res.status(201).json({ message: "Farmer registered successfully" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error registering farmer" });
+    console.error("Registration error:", err);
+    if (err.message.includes('unique constraint')) {
+      res.status(400).json({ message: "Phone number already registered" });
+    } else {
+      res.status(500).json({ message: "Error registering farmer: " + err.message });
+    }
   }
 });
 
@@ -59,6 +78,7 @@ router.post("/login", async (req, res) => {
       message: "Login successful",
       token,
       farmerId: farmer.FARMER_ID,
+      name: farmer.NAME
     });
   } catch (err) {
     console.error(err);

@@ -9,6 +9,7 @@ import labourRoutes from "./routes/labourRoutes.js";
 import fertilizerRoutes from "./routes/fertilizerRoutes.js";
 import salesRoutes from "./routes/salesRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import { protect } from "./middleware/authMiddleware.js";
 
 dotenv.config();
@@ -19,6 +20,7 @@ app.use(express.json());
 
 // Public auth routes
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Protected routes
 app.use("/api/farmers", protect, farmerRoutes);

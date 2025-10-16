@@ -12,7 +12,11 @@ import AddSale from "./pages/AddSales";
 import Sales from "./pages/Sales";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/login";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 import Register from "./pages/Register";
+import Analytics from "./pages/Analytics";
+import Farms from "./pages/Farms";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -22,6 +26,7 @@ function App() {
         {/* Public routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/register" element={<Register />} />
 
         {/* Protected routes (require login) */}
@@ -30,6 +35,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />
@@ -110,6 +123,22 @@ function App() {
           element={
             <ProtectedRoute>
               <AddSale />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <Analytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/farms"
+          element={
+            <ProtectedRoute>
+              <Farms />
             </ProtectedRoute>
           }
         />

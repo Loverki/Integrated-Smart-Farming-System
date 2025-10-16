@@ -1,58 +1,63 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getConnection } from '../database/connection.js';
 
 export const registerFarmer = async (req, res) => {
-  const { name, location, phone, password } = req.body;
+  const { name, phone, address, password } = req.body;
+  if (!name || !phone || !password)
+    return res.status(400).json({ message: "Missing required fields" });
+
   try {
-    const conn = await getConnection();
-
     const hashedPassword = await bcrypt.hash(password, 10);
+    const connection = await getConnection();
 
-    await conn.execute(
-      `INSERT INTO FARMERS (NAME, LOCATION, PHONE, PASSWORD)
-       VALUES (:name, :location, :phone, :password)`,
-      { name, location, phone, password: hashedPassword },
+    const result = await connection.execute(
+      `INSERT INTO FARMER (FARMER_ID, NAME, PHONE, ADDRESS, PASSWORD)
+       VALUES (FARMER_SEQ.NEXTVAL, :name, :phone, :address, :password)`,
+      { name, phone, address, password: hashedPassword },
       { autoCommit: true }
     );
 
-    await conn.close();
-    res.status(201).json({ message: 'Farmer registered successfully' });
+    await connection.close();
+    res.status(201).json({ message: "Farmer registered successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error registering farmer' });
+    res.status(500).json({ message: "Error registering farmer" });
   }
 };
 
 export const loginFarmer = async (req, res) => {
   const { phone, password } = req.body;
+
   try {
-    const conn = await getConnection();
-    const result = await conn.execute(
-      `SELECT FARMER_ID, NAME, PASSWORD FROM FARMERS WHERE PHONE = :phone`,
-      [phone]
+    const connection = await getConnection();
+    const result = await connection.execute(
+      `SELECT FARMER_ID, NAME, PASSWORD FROM FARMER WHERE PHONE = :phone`,
+      { phone }
     );
-
-    await conn.close();
-
-    if (result.rows.length === 0)
-      return res.status(400).json({ message: 'Invalid credentials' });
 
     const farmer = result.rows[0];
-    const isMatch = await bcrypt.compare(password, farmer.PASSWORD);
+    await connection.close();
 
-    if (!isMatch)
-      return res.status(400).json({ message: 'Invalid credentials' });
+    if (!farmer) return res.status(404).json({ message: "Farmer not found" });
+
+    const match = await bcrypt.compare(password, farmer.PASSWORD);
+    if (!match) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = jwt.sign(
-      { farmerId: farmer.FARMER_ID, name: farmer.NAME },
+      { farmer_id: farmer.FARMER_ID, name: farmer.NAME },
       process.env.JWT_SECRET,
-      { expiresIn: '2h' }
+      { expiresIn: "1d" }
     );
 
-    res.json({ token, farmerId: farmer.FARMER_ID, name: farmer.NAME });
+    res.json({
+      message: "Login successful",
+      token,
+      farmerId: farmer.FARMER_ID,
+      name: farmer.NAME
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error logging in farmer' });
+    res.status(500).json({ message: "Error logging in" });
   }
 };

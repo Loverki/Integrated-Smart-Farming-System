@@ -17,6 +17,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Register from "./pages/Register";
 import Analytics from "./pages/Analytics";
 import Farms from "./pages/Farms";
+import DatabaseViews from "./pages/DatabaseViews";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -139,6 +140,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Farms />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/database-views"
+          element={
+            <ProtectedRoute>
+              <DatabaseViews />
             </ProtectedRoute>
           }
         />

@@ -50,7 +50,6 @@ export default function Labours() {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-green-50">
       {/* Header */}
@@ -75,7 +74,7 @@ export default function Labours() {
 
       <div className="max-w-6xl mx-auto py-8 px-4">
         <div className="bg-white p-6 rounded-2xl shadow-lg">
-              {/* Add Labour Form */}
+          {/* Add Labour Form */}
           <form onSubmit={addLabour} className="flex flex-wrap gap-4 items-end mb-6 border-b pb-4">
             <input
               type="text"

@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+
+
+
+.nav-bar {
+  display: flex;
+  gap: 16px;
+  background-color: #2e7d32;
+  padding: 12px;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+.nav-bar a {
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.nav-bar a:hover {
+  background-color: #43a047;
+}
+

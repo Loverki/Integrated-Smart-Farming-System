@@ -21,7 +21,7 @@ export default function Farms() {
 
   const fetchFarms = async () => {
     try {
-      const response = await axios.get("/farmers/farms");
+      const response = await axios.get("/farms");
       setFarms(response.data);
     } catch (err) {
       console.error("Error fetching farms:", err);

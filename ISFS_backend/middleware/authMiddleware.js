@@ -9,6 +9,7 @@ export const protect = (req, res, next) => {
     req.farmer = decoded; // attach farmer info to request
     next();
   } catch (err) {
+    console.error('JWT verification error:', err.message);
     res.status(401).json({ message: 'Invalid token' });
   }
 };

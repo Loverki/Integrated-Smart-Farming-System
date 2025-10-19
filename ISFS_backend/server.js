@@ -1,16 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-
-import farmerRoutes from "./routes/farmerRoutes.js";
-import farmRoutes from "./routes/farmRoutes.js";
-import cropRoutes from "./routes/cropRoutes.js";
-import labourRoutes from "./routes/labourRoutes.js";
-import fertilizerRoutes from "./routes/fertilizerRoutes.js";
-import salesRoutes from "./routes/salesRoutes.js";
-import authRoutes from "./routes/authRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import { protect } from "./middleware/authMiddleware.js";
+import oracledb from "oracledb";
 
 dotenv.config();
 
@@ -18,17 +9,85 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Public auth routes
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
+// Health check endpoint
+app.get("/", (req, res) => res.send("Server is running"));
 
-// Protected routes
-app.use("/api/farmers", protect, farmerRoutes);
-app.use("/api/farms", protect, farmRoutes);
-app.use("/api/crops", protect, cropRoutes);
-app.use("/api/labours", protect, labourRoutes);
-app.use("/api/fertilizers", protect, fertilizerRoutes);
-app.use("/api/sales", protect, salesRoutes);
+// Safe database connection function
+async function connectDB() {
+  try {
+    const connection = await oracledb.getConnection({
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      connectionString: process.env.DB_CONNECT_STRING,
+    });
+    console.log("✅ Database connection successful");
+    return connection;
+  } catch (err) {
+    console.error("❌ Database connection failed:", err);
+    throw err; // throw so we can decide whether to start server
+  }
+}
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// Start server function
+const startServer = async () => {
+  try {
+    // Connect to DB first
+    await connectDB();
+
+    // Lazy-load routes AFTER DB connection
+    const { default: farmerRoutes } = await import("./routes/farmerRoutes.js");
+    const { default: farmRoutes } = await import("./routes/farmRoutes.js");
+    const { default: cropRoutes } = await import("./routes/cropRoutes.js");
+    const { default: labourRoutes } = await import("./routes/labourRoutes.js");
+    const { default: fertilizerRoutes } = await import("./routes/fertilizerRoutes.js");
+    const { default: salesRoutes } = await import("./routes/salesRoutes.js");
+    const { default: authRoutes } = await import("./routes/authRoutes.js");
+    const { default: adminRoutes } = await import("./routes/adminRoutes.js");
+    const { protect } = await import("./middleware/authMiddleware.js");
+
+    // Setup routes
+    app.use("/api/auth", authRoutes);
+    app.use("/api/admin", adminRoutes);
+
+    app.use("/api/farmers", protect, farmerRoutes);
+    app.use("/api/farms", protect, farmRoutes);
+    app.use("/api/crops", protect, cropRoutes);
+    app.use("/api/labours", protect, labourRoutes);
+    app.use("/api/fertilizers", protect, fertilizerRoutes);
+    app.use("/api/sales", protect, salesRoutes);
+
+    // Start server
+    const PORT = process.env.PORT || 5000;
+    const server = app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+    // Graceful shutdown
+    const shutdown = (signal) => {
+      console.log(`🛑 ${signal} received, shutting down gracefully`);
+      server.close(() => {
+        console.log("✅ Server closed");
+        process.exit(0);
+      });
+    };
+
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+
+    // Handle uncaught exceptions
+    process.on("uncaughtException", (err) => {
+      console.error("❌ Uncaught Exception:", err);
+      server.close(() => process.exit(1));
+    });
+
+    // Handle unhandled promise rejections
+    process.on("unhandledRejection", (err) => {
+      console.error("❌ Unhandled Rejection:", err);
+      server.close(() => process.exit(1));
+    });
+  } catch (err) {
+    console.error("Failed to start server:", err);
+    process.exit(1); // exit if DB connection failed
+  }
+};
+
+// Run server
+startServer();

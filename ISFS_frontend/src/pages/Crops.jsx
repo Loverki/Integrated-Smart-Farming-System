@@ -1,125 +1,186 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import axios from "../api/axios";
 
 export default function Crops() {
+  const navigate = useNavigate();
   const [crops, setCrops] = useState([]);
-  const [formData, setFormData] = useState({
-    farm_id: "",
-    crop_name: "",
-    sowing_date: "",
-    harvesting_date: "",
-    expected_yield: "",
-  });
-
-  const fetchCrops = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/crops");
-      setCrops(res.data);
-    } catch (err) {
-      console.error("Error fetching crops:", err);
-    }
-  };
-
-  const addCrop = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post("http://localhost:5000/api/crops", formData);
-      setFormData({
-        farm_id: "",
-        crop_name: "",
-        sowing_date: "",
-        harvesting_date: "",
-        expected_yield: "",
-      });
-      fetchCrops();
-    } catch (err) {
-      console.error("Error adding crop:", err);
-    }
-  };
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchCrops();
   }, []);
 
+  const fetchCrops = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get("/crops");
+      setCrops(res.data);
+      setError("");
+    } catch (err) {
+      console.error("Error fetching crops:", err);
+      setError("Failed to load crops. Please try again.");
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'PLANTED': return 'bg-blue-100 text-blue-800';
+      case 'GROWING': return 'bg-green-100 text-green-800';
+      case 'MATURE': return 'bg-yellow-100 text-yellow-800';
+      case 'HARVESTED': return 'bg-purple-100 text-purple-800';
+      case 'DAMAGED': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto mt-6 bg-white p-6 rounded-2xl shadow-lg">
-      <h2 className="text-2xl font-bold text-green-700 mb-4">🌾 Crops</h2>
+    <div className="min-h-screen bg-green-50">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold">🌾 Crop Management</h1>
+              <p className="text-lg mt-1 opacity-90">Track crop growth and harvest schedules</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate("/add-crop")}
+                className="bg-white text-green-700 px-6 py-2 rounded-lg font-semibold hover:bg-green-50 transition-colors shadow-md"
+              >
+                ➕ Add Crop
+              </button>
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-colors"
+              >
+                ← Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      {/* Add Crop Form */}
-      <form onSubmit={addCrop} className="flex flex-wrap gap-4 items-end mb-6 border-b pb-4">
-        <input
-          type="number"
-          placeholder="Farm ID"
-          value={formData.farm_id}
-          onChange={(e) => setFormData({ ...formData, farm_id: e.target.value })}
-          className="border rounded-lg px-4 py-2 flex-1"
-          required
-        />
-        <input
-          type="text"
-          placeholder="Crop Name"
-          value={formData.crop_name}
-          onChange={(e) => setFormData({ ...formData, crop_name: e.target.value })}
-          className="border rounded-lg px-4 py-2 flex-1"
-          required
-        />
-        <input
-          type="date"
-          placeholder="Sowing Date"
-          value={formData.sowing_date}
-          onChange={(e) => setFormData({ ...formData, sowing_date: e.target.value })}
-          className="border rounded-lg px-4 py-2 flex-1"
-          required
-        />
-        <input
-          type="date"
-          placeholder="Harvesting Date"
-          value={formData.harvesting_date}
-          onChange={(e) => setFormData({ ...formData, harvesting_date: e.target.value })}
-          className="border rounded-lg px-4 py-2 flex-1"
-          required
-        />
-        <input
-          type="number"
-          placeholder="Expected Yield"
-          value={formData.expected_yield}
-          onChange={(e) => setFormData({ ...formData, expected_yield: e.target.value })}
-          className="border rounded-lg px-4 py-2 flex-1"
-          required
-        />
-        <button
-          type="submit"
-          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
-        >
-          ➕ Add Crop
-        </button>
-      </form>
+      <div className="max-w-7xl mx-auto py-8 px-4">
+        <div className="bg-white p-6 rounded-2xl shadow-lg">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">All Crops</h2>
+            <button
+              onClick={fetchCrops}
+              className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+              disabled={loading}
+            >
+              {loading ? "Loading..." : "🔄 Refresh"}
+            </button>
+          </div>
 
-      {/* Crops Table */}
-      <table className="w-full border border-gray-200 text-left rounded-lg overflow-hidden">
-        <thead className="bg-green-100 text-green-800">
-          <tr>
-            <th className="p-3 border">ID</th>
-            <th className="p-3 border">Farm ID</th>
-            <th className="p-3 border">Crop Name</th>
-            <th className="p-3 border">Sowing Date</th>
-            <th className="p-3 border">Harvesting Date</th>
-            <th className="p-3 border">Expected Yield</th>
-          </tr>
-        </thead>
-        <tbody>
-          {crops.map((c, i) => (
-            <tr key={i} className="hover:bg-green-50">
-              <td className="p-3 border">{c[0]}</td>
-              <td className="p-3 border">{c[1]}</td>
-              <td className="p-3 border">{c[2]}</td>
-              <td className="p-3 border">{new Date(c[3]).toLocaleDateString()}</td>
-              <td className="p-3 border">{new Date(c[4]).toLocaleDateString()}</td>
-              <td className="p-3 border">{c[5]}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+              {error}
+            </div>
+          )}
+
+          {loading && crops.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading crops...</p>
+            </div>
+          ) : crops.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-lg mb-4">No crops planted yet.</p>
+              <button
+                onClick={() => navigate("/add-crop")}
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                ➕ Add First Crop
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border border-gray-200 text-left rounded-lg overflow-hidden">
+                <thead className="bg-green-100 text-green-800">
+                  <tr>
+                    <th className="p-3 border">ID</th>
+                    <th className="p-3 border">Farm</th>
+                    <th className="p-3 border">Crop Name</th>
+                    <th className="p-3 border">Variety</th>
+                    <th className="p-3 border">Sowing Date</th>
+                    <th className="p-3 border">Expected Harvest</th>
+                    <th className="p-3 border">Expected Yield</th>
+                    <th className="p-3 border">Status</th>
+                    <th className="p-3 border">Growth Stage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {crops.map((crop, index) => {
+                    // Handle both object and array formats
+                    const id = crop.CROP_ID || crop.crop_id || crop[0];
+                    const farmName = crop.FARM_NAME || crop.farm_name || crop[1];
+                    const cropName = crop.CROP_NAME || crop.crop_name || crop[2];
+                    const variety = crop.VARIETY || crop.variety || crop[3];
+                    const sowingDate = crop.SOWING_DATE || crop.sowing_date || crop[4];
+                    const expectedHarvest = crop.EXPECTED_HARVEST_DATE || crop.expected_harvest_date || crop[5];
+                    const expectedYield = crop.EXPECTED_YIELD || crop.expected_yield || crop[7];
+                    const status = crop.CROP_STATUS || crop.crop_status || crop[9];
+                    const growthStage = crop.GROWTH_STAGE || crop.growth_stage || crop[12];
+
+                    return (
+                      <tr key={index} className="hover:bg-green-50 transition-colors">
+                        <td className="p-3 border font-mono text-sm">{id}</td>
+                        <td className="p-3 border">{farmName || '-'}</td>
+                        <td className="p-3 border font-semibold">{cropName}</td>
+                        <td className="p-3 border text-sm">{variety || '-'}</td>
+                        <td className="p-3 border text-sm">
+                          {sowingDate ? new Date(sowingDate).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="p-3 border text-sm">
+                          {expectedHarvest ? new Date(expectedHarvest).toLocaleDateString() : '-'}
+                        </td>
+                        <td className="p-3 border font-semibold text-green-700">
+                          {expectedYield ? `${parseFloat(expectedYield).toLocaleString()} kg` : '-'}
+                        </td>
+                        <td className="p-3 border">
+                          <span className={`px-2 py-1 rounded text-sm ${getStatusColor(status)}`}>
+                            {status || 'PLANTED'}
+                          </span>
+                        </td>
+                        <td className="p-3 border text-sm">{growthStage || '-'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
+                <div>
+                  Total Crops: <span className="font-semibold">{crops.length}</span>
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                    Planted: {crops.filter(c => (c.CROP_STATUS || c.crop_status || c[9]) === 'PLANTED').length}
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                    Growing: {crops.filter(c => (c.CROP_STATUS || c.crop_status || c[9]) === 'GROWING').length}
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
+                    Harvested: {crops.filter(c => (c.CROP_STATUS || c.crop_status || c[9]) === 'HARVESTED').length}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

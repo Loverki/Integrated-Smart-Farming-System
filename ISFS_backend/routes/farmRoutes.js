@@ -16,7 +16,8 @@ router.get("/", async (req, res) => {
     connection = await getConnection();
     
     // Get farms for the specific farmer with additional details
-    const result = await connection.execute(`
+    const result = await connection.execute(
+      `
       SELECT 
         f.farm_id,
         f.farm_name,
@@ -36,10 +37,12 @@ router.get("/", async (req, res) => {
       WHERE f.farmer_id = :farmer_id
       GROUP BY f.farm_id, f.farm_name, f.location, f.area, f.soil_type, f.soil_ph, f.irrigation_type, f.farm_type, f.created_date, f.status
       ORDER BY f.created_date DESC
-    `, { farmer_id });
+      `,
+      { farmer_id }
+    );
     
     console.log(`✅ Retrieved ${result.rows.length} farms for farmer ${farmer_id}`);
-    res.json(result.rows);
+    res.json(result.rows || []);
   } catch (err) {
     console.error("Get farms error:", err);
     res.status(500).json({ error: err.message });

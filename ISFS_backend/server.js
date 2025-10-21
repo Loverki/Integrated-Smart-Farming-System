@@ -40,6 +40,7 @@ const startServer = async () => {
     const { default: cropRoutes } = await import("./routes/cropRoutes.js");
     const { default: labourRoutes } = await import("./routes/labourRoutes.js");
     const { default: fertilizerRoutes } = await import("./routes/fertilizerRoutes.js");
+    const { default: equipmentRoutes } = await import("./routes/equipmentRoutes.js");
     const { default: salesRoutes } = await import("./routes/salesRoutes.js");
     const { default: authRoutes } = await import("./routes/authRoutes.js");
     const { default: adminRoutes } = await import("./routes/adminRoutes.js");
@@ -54,6 +55,7 @@ const startServer = async () => {
     app.use("/api/crops", protect, cropRoutes);
     app.use("/api/labours", protect, labourRoutes);
     app.use("/api/fertilizers", protect, fertilizerRoutes);
+    app.use("/api/equipment", protect, equipmentRoutes);
     app.use("/api/sales", protect, salesRoutes);
 
     // Start server

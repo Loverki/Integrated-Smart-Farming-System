@@ -13,8 +13,10 @@ router.get("/", async (req, res) => {
   let connection;
   try {
     connection = await getConnection();
-    const result = await connection.execute("SELECT * FROM Farmer");
-    res.json(result.rows);
+    const result = await connection.execute(
+      "SELECT * FROM Farmer"
+    );
+    res.json(result.rows || []);
   } catch (err) {
     console.error("Get all farmers error:", err);
     res.status(500).json({ error: err.message });
@@ -52,13 +54,50 @@ router.get("/dashboard-stats", async (req, res) => {
   let connection;
   try {
     connection = await getConnection();
+    
+    // Get total farms
     const farmsResult = await connection.execute(
       `SELECT COUNT(*) AS total_farms FROM FARM WHERE FARMER_ID = :farmer_id`,
       { farmer_id: farmerId }
     );
 
+    // Get total crops
+    const cropsResult = await connection.execute(
+      `SELECT COUNT(*) AS total_crops 
+       FROM CROP c 
+       JOIN FARM f ON c.farm_id = f.farm_id 
+       WHERE f.farmer_id = :farmer_id`,
+      { farmer_id: farmerId }
+    );
+
+    // Get total revenue from sales
+    const revenueResult = await connection.execute(
+      `SELECT NVL(SUM(s.total_amount), 0) AS total_revenue 
+       FROM SALES s 
+       JOIN FARM f ON s.farm_id = f.farm_id 
+       WHERE f.farmer_id = :farmer_id`,
+      { farmer_id: farmerId }
+    );
+
+    // Get average yield from crops (use expected_yield if actual_yield is not available)
+    const yieldResult = await connection.execute(
+      `SELECT 
+        NVL(AVG(CASE WHEN c.actual_yield IS NOT NULL THEN c.actual_yield ELSE c.expected_yield END), 0) AS avg_yield,
+        NVL(AVG(c.actual_yield), 0) AS avg_actual_yield,
+        NVL(AVG(c.expected_yield), 0) AS avg_expected_yield
+       FROM CROP c 
+       JOIN FARM f ON c.farm_id = f.farm_id 
+       WHERE f.farmer_id = :farmer_id`,
+      { farmer_id: farmerId }
+    );
+
     res.json({
-      total_farms: farmsResult.rows[0].TOTAL_FARMS || 0
+      total_farms: farmsResult.rows[0].TOTAL_FARMS || 0,
+      total_crops: cropsResult.rows[0].TOTAL_CROPS || 0,
+      total_revenue: revenueResult.rows[0].TOTAL_REVENUE || 0,
+      avg_yield: Math.round(yieldResult.rows[0].AVG_YIELD || 0),
+      avg_actual_yield: Math.round(yieldResult.rows[0].AVG_ACTUAL_YIELD || 0),
+      avg_expected_yield: Math.round(yieldResult.rows[0].AVG_EXPECTED_YIELD || 0)
     });
   } catch (err) {
     console.error("Dashboard stats error:", err);

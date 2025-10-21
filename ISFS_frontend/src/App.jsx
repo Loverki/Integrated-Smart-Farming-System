@@ -8,6 +8,8 @@ import AddLabours from "./pages/AddLabours";
 import Labours from "./pages/Labours";
 import AddFertilizers from "./pages/AddFertilizers";
 import Fertilizers from "./pages/Fertilizers";
+import AddEquipment from "./pages/AddEquipment";
+import Equipment from "./pages/Equipment";
 import AddSale from "./pages/AddSales";
 import Sales from "./pages/Sales";
 import Dashboard from "./pages/Dashboard";
@@ -89,7 +91,7 @@ function App() {
           }
         />
         <Route
-          path="/add-labour"
+          path="/add-labours"
           element={
             <ProtectedRoute>
               <AddLabours />
@@ -105,7 +107,7 @@ function App() {
           }
         />
         <Route
-          path="/add-fertilizer"
+          path="/add-fertilizers"
           element={
             <ProtectedRoute>
               <AddFertilizers />
@@ -177,12 +179,15 @@ function App() {
           path="/equipment"
           element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-green-50 flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-4">Equipment Management</h1>
-                  <p className="text-gray-600">This feature is coming soon!</p>
-                </div>
-              </div>
+              <Equipment />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add-equipment"
+          element={
+            <ProtectedRoute>
+              <AddEquipment />
             </ProtectedRoute>
           }
         />

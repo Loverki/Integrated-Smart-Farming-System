@@ -2,15 +2,19 @@ import React, { useState } from "react";
 import axios from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
-export default function AddLabours() {
+export default function AddEquipment() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    skill: "",
-    hourly_rate: "",
-    address: ""
+    equipment_name: "",
+    equipment_type: "",
+    brand: "",
+    model: "",
+    purchase_date: "",
+    purchase_cost: "",
+    current_value: "",
+    status: "OPERATIONAL",
+    last_maintenance_date: "",
+    next_maintenance_date: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -26,22 +30,26 @@ export default function AddLabours() {
     setSuccess("");
 
     // Show preview query
-    if (updatedForm.name || updatedForm.skill) {
+    if (updatedForm.equipment_name || updatedForm.equipment_type) {
       const previewQuery = {
         type: 'PREVIEW',
-        sql: `INSERT INTO LABOUR(
-  labour_id, name, phone, email, skill,
-  hourly_rate, address, hire_date, status
+        sql: `INSERT INTO EQUIPMENT(
+  equipment_id, farmer_id, equipment_name, equipment_type,
+  brand, model, purchase_date, purchase_cost, current_value,
+  status, last_maintenance_date, next_maintenance_date
 ) VALUES(
-  LABOUR_SEQ.NEXTVAL,
-  '${updatedForm.name || '...'}',
-  '${updatedForm.phone || 'NULL'}',
-  '${updatedForm.email || 'NULL'}',
-  '${updatedForm.skill || '...'}',
-  ${updatedForm.hourly_rate || 'NULL'},
-  '${updatedForm.address || 'NULL'}',
-  SYSDATE,
-  'AVAILABLE'
+  EQUIPMENT_SEQ.NEXTVAL,
+  :farmer_id,
+  '${updatedForm.equipment_name || '...'}',
+  '${updatedForm.equipment_type || '...'}',
+  ${updatedForm.brand ? `'${updatedForm.brand}'` : 'NULL'},
+  ${updatedForm.model ? `'${updatedForm.model}'` : 'NULL'},
+  ${updatedForm.purchase_date ? `TO_DATE('${updatedForm.purchase_date}', 'YYYY-MM-DD')` : 'NULL'},
+  ${updatedForm.purchase_cost || 'NULL'},
+  ${updatedForm.current_value || 'NULL'},
+  '${updatedForm.status}',
+  ${updatedForm.last_maintenance_date ? `TO_DATE('${updatedForm.last_maintenance_date}', 'YYYY-MM-DD')` : 'NULL'},
+  ${updatedForm.next_maintenance_date ? `TO_DATE('${updatedForm.next_maintenance_date}', 'YYYY-MM-DD')` : 'NULL'}
 )`,
         status: 'pending',
         time: null
@@ -69,28 +77,32 @@ export default function AddLabours() {
         },
         {
           type: 'SEQUENCE',
-          sql: `SELECT LABOUR_SEQ.NEXTVAL FROM DUAL`,
+          sql: `SELECT EQUIPMENT_SEQ.NEXTVAL FROM DUAL`,
           status: 'pending',
-          description: 'Generating unique labour ID'
+          description: 'Generating unique equipment ID'
         },
         {
           type: 'INSERT',
-          sql: `INSERT INTO LABOUR(
-  labour_id, name, phone, email, skill,
-  hourly_rate, address, hire_date, status
+          sql: `INSERT INTO EQUIPMENT(
+  equipment_id, farmer_id, equipment_name, equipment_type,
+  brand, model, purchase_date, purchase_cost, current_value,
+  status, last_maintenance_date, next_maintenance_date
 ) VALUES(
-  LABOUR_SEQ.NEXTVAL,
-  '${form.name}',
-  ${form.phone ? `'${form.phone}'` : 'NULL'},
-  ${form.email ? `'${form.email}'` : 'NULL'},
-  '${form.skill}',
-  ${form.hourly_rate || 'NULL'},
-  ${form.address ? `'${form.address}'` : 'NULL'},
-  SYSDATE,
-  'AVAILABLE'
+  EQUIPMENT_SEQ.NEXTVAL,
+  :farmer_id,
+  '${form.equipment_name}',
+  '${form.equipment_type}',
+  ${form.brand ? `'${form.brand}'` : 'NULL'},
+  ${form.model ? `'${form.model}'` : 'NULL'},
+  ${form.purchase_date ? `TO_DATE('${form.purchase_date}', 'YYYY-MM-DD')` : 'NULL'},
+  ${form.purchase_cost || 'NULL'},
+  ${form.current_value || 'NULL'},
+  '${form.status}',
+  ${form.last_maintenance_date ? `TO_DATE('${form.last_maintenance_date}', 'YYYY-MM-DD')` : 'NULL'},
+  ${form.next_maintenance_date ? `TO_DATE('${form.next_maintenance_date}', 'YYYY-MM-DD')` : 'NULL'}
 )`,
           status: 'pending',
-          description: 'Inserting labour record with hire_date=SYSDATE'
+          description: 'Inserting equipment record with farmer association'
         },
         {
           type: 'COMMIT',
@@ -116,7 +128,7 @@ export default function AddLabours() {
         });
       }
 
-      await axios.post("/labours", form);
+      await axios.post("/equipment", form);
       
       const endTime = Date.now();
       setExecutionTime(endTime - startTime);
@@ -125,14 +137,14 @@ export default function AddLabours() {
         type: 'SUCCESS',
         sql: '✅ All operations completed successfully',
         status: 'success',
-        description: `Labour worker "${form.name}" registered successfully`
+        description: `Equipment "${form.equipment_name}" registered successfully`
       }]);
       
       setShowSuccess(true);
       
     } catch (err) {
-      console.error("Error adding labour:", err);
-      const errorMessage = err.response?.data?.message || "Failed to add labour. Please try again.";
+      console.error("Error adding equipment:", err);
+      const errorMessage = err.response?.data?.message || "Failed to add equipment. Please try again.";
       setError(errorMessage);
       
       setQueries(prev => [...prev, {
@@ -173,10 +185,10 @@ export default function AddLabours() {
           {/* Left Column - Form */}
           <div className="bg-white rounded-2xl shadow-lg p-8">
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold text-blue-600 mb-2">👥 Add New Labour</h2>
-              <p className="text-gray-600">Register a new labour worker</p>
+              <h2 className="text-3xl font-bold text-orange-600 mb-2">🚜 Add New Equipment</h2>
+              <p className="text-gray-600">Register farm equipment and machinery</p>
             </div>
-            
+
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
                 {error}
@@ -188,20 +200,20 @@ export default function AddLabours() {
                 {success}
               </div>
             )}
-            
+
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
+                    Equipment Name *
                   </label>
                   <input
                     type="text"
-                    name="name"
-                    placeholder="Enter worker name"
-                    value={form.name}
+                    name="equipment_name"
+                    placeholder="Enter equipment name"
+                    value={form.equipment_name}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
                     required
                     disabled={loading}
                   />
@@ -209,83 +221,148 @@ export default function AddLabours() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    placeholder="Enter phone number"
-                    value={form.phone}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                    disabled={loading}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Enter email address"
-                    value={form.email}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                    disabled={loading}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Skill *
+                    Equipment Type *
                   </label>
                   <select
-                    name="skill"
-                    value={form.skill}
+                    name="equipment_type"
+                    value={form.equipment_type}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
                     required
                     disabled={loading}
                   >
-                    <option key="empty" value="">Select skill</option>
-                    <option key="planting" value="PLANTING">Planting</option>
-                    <option key="harvesting" value="HARVESTING">Harvesting</option>
-                    <option key="irrigation" value="IRRIGATION">Irrigation</option>
-                    <option key="pesticide" value="PESTICIDE_APPLICATION">Pesticide Application</option>
-                    <option key="machinery" value="MACHINERY_OPERATION">Machinery Operation</option>
-                    <option key="general" value="GENERAL">General Labour</option>
+                    <option key="empty" value="">Select type</option>
+                    <option key="tractor" value="Tractor">Tractor</option>
+                    <option key="harvester" value="Harvester">Harvester</option>
+                    <option key="plough" value="Plough">Plough</option>
+                    <option key="sprayer" value="Sprayer">Sprayer</option>
+                    <option key="seeder" value="Seeder">Seeder</option>
+                    <option key="irrigation" value="Irrigation System">Irrigation System</option>
+                    <option key="cultivator" value="Cultivator">Cultivator</option>
+                    <option key="trailer" value="Trailer">Trailer</option>
+                    <option key="pump" value="Water Pump">Water Pump</option>
+                    <option key="other" value="Other">Other</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Hourly Rate (₹)
+                    Brand
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
-                    name="hourly_rate"
-                    placeholder="Enter hourly rate"
-                    value={form.hourly_rate}
+                    type="text"
+                    name="brand"
+                    placeholder="Enter brand name"
+                    value={form.brand}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
                     disabled={loading}
                   />
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address
+                    Model
                   </label>
                   <input
                     type="text"
-                    name="address"
-                    placeholder="Enter address"
-                    value={form.address}
+                    name="model"
+                    placeholder="Enter model"
+                    value={form.model}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Purchase Date
+                  </label>
+                  <input
+                    type="date"
+                    name="purchase_date"
+                    value={form.purchase_date}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Purchase Cost (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="purchase_cost"
+                    placeholder="Enter purchase cost"
+                    value={form.purchase_cost}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Current Value (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="current_value"
+                    placeholder="Enter current value"
+                    value={form.current_value}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={form.status}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
+                    disabled={loading}
+                  >
+                    <option key="operational" value="OPERATIONAL">Operational</option>
+                    <option key="maintenance" value="MAINTENANCE">Maintenance</option>
+                    <option key="repair" value="REPAIR">Under Repair</option>
+                    <option key="retired" value="RETIRED">Retired</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Maintenance Date
+                  </label>
+                  <input
+                    type="date"
+                    name="last_maintenance_date"
+                    value={form.last_maintenance_date}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Next Maintenance Date
+                  </label>
+                  <input
+                    type="date"
+                    name="next_maintenance_date"
+                    value={form.next_maintenance_date}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-colors"
                     disabled={loading}
                   />
                 </div>
@@ -294,7 +371,7 @@ export default function AddLabours() {
               {showSuccess ? (
                 <div className="bg-green-50 border-2 border-green-500 rounded-lg p-6 text-center">
                   <div className="text-6xl mb-4">✅</div>
-                  <h3 className="text-2xl font-bold text-green-800 mb-2">Labour Worker Registered Successfully!</h3>
+                  <h3 className="text-2xl font-bold text-green-800 mb-2">Equipment Added Successfully!</h3>
                   <p className="text-gray-600 mb-6">Review the SQL queries on the right →</p>
                   <div className="flex justify-center space-x-4">
                     <button
@@ -304,24 +381,28 @@ export default function AddLabours() {
                         setQueries([]);
                         setExecutionTime(null);
                         setForm({
-                          name: "",
-                          phone: "",
-                          email: "",
-                          skill: "",
-                          hourly_rate: "",
-                          address: ""
+                          equipment_name: "",
+                          equipment_type: "",
+                          brand: "",
+                          model: "",
+                          purchase_date: "",
+                          purchase_cost: "",
+                          current_value: "",
+                          status: "OPERATIONAL",
+                          last_maintenance_date: "",
+                          next_maintenance_date: ""
                         });
                       }}
-                      className="px-6 py-3 border-2 border-blue-600 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors font-semibold"
+                      className="px-6 py-3 border-2 border-orange-600 text-orange-700 rounded-lg hover:bg-orange-50 transition-colors font-semibold"
                     >
-                      ➕ Add Another Labour
+                      ➕ Add Another Equipment
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigate("/labours")}
-                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                      onClick={() => navigate("/equipment")}
+                      className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-semibold"
                     >
-                      View All Labours →
+                      View All Equipment →
                     </button>
                   </div>
                 </div>
@@ -329,16 +410,16 @@ export default function AddLabours() {
                 <div className="flex justify-end space-x-4">
                   <button
                     type="button"
-                    onClick={() => navigate("/labours")}
+                    onClick={() => navigate("/equipment")}
                     className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     disabled={loading}
                   >
-                    View All Labours
+                    View All Equipment
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <span className="flex items-center">
@@ -346,10 +427,10 @@ export default function AddLabours() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Registering Labour...
+                        Adding Equipment...
                       </span>
                     ) : (
-                      "Register Labour"
+                      "Add Equipment"
                     )}
                   </button>
                 </div>
@@ -378,7 +459,7 @@ export default function AddLabours() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                   <p className="text-sm">Fill in the form to see SQL queries</p>
-                  <p className="text-xs mt-2">Click "Register Labour" to execute</p>
+                  <p className="text-xs mt-2">Click "Add Equipment" to execute</p>
                 </div>
               ) : (
                 queries.map((query, index) => (

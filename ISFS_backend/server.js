@@ -44,6 +44,10 @@ const startServer = async () => {
     const { default: salesRoutes } = await import("./routes/salesRoutes.js");
     const { default: authRoutes } = await import("./routes/authRoutes.js");
     const { default: adminRoutes } = await import("./routes/adminRoutes.js");
+    const { default: viewsRoutes } = await import("./routes/viewsRoutes.js");
+    const { default: proceduresRoutes } = await import("./routes/proceduresRoutes.js");
+    const { default: functionsRoutes } = await import("./routes/functionsRoutes.js");
+    const { default: analyticsRoutes } = await import("./routes/analyticsRoutes.js");
     const { protect } = await import("./middleware/authMiddleware.js");
 
     // Setup routes
@@ -57,6 +61,12 @@ const startServer = async () => {
     app.use("/api/fertilizers", protect, fertilizerRoutes);
     app.use("/api/equipment", protect, equipmentRoutes);
     app.use("/api/sales", protect, salesRoutes);
+    
+    // Advanced DBMS features routes
+    app.use("/api/views", protect, viewsRoutes);
+    app.use("/api/procedures", protect, proceduresRoutes);
+    app.use("/api/functions", protect, functionsRoutes);
+    app.use("/api/analytics", protect, analyticsRoutes);
 
     // Start server
     const PORT = process.env.PORT || 5000;

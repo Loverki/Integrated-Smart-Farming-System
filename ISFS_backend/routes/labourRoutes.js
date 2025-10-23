@@ -74,4 +74,45 @@ router.post("/", async (req, res) => {
   }
 });
 
+// DELETE a labour
+router.delete("/:labour_id", async (req, res) => {
+  const { labour_id } = req.params;
+
+  let connection;
+  try {
+    connection = await getConnection();
+
+    // Check if labour exists
+    const labourCheck = await connection.execute(
+      `SELECT labour_id, name FROM LABOUR WHERE labour_id = :labour_id`,
+      { labour_id: parseInt(labour_id) }
+    );
+
+    if (labourCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Labour not found" });
+    }
+
+    const labourName = labourCheck.rows[0].NAME;
+
+    // Delete the labour
+    await connection.execute(
+      `DELETE FROM LABOUR WHERE labour_id = :labour_id`,
+      { labour_id: parseInt(labour_id) },
+      { autoCommit: true }
+    );
+
+    res.json({
+      message: "Labour deleted successfully",
+      labour_id: parseInt(labour_id),
+      labour_name: labourName
+    });
+
+  } catch (err) {
+    console.error("Error deleting labour:", err);
+    res.status(500).json({ message: "Failed to delete labour", error: err.message });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
 export default router;

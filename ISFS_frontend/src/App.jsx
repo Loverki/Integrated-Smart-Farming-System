@@ -21,6 +21,11 @@ import Analytics from "./pages/Analytics";
 import Farms from "./pages/Farms";
 import AddFarm from "./pages/AddFarm";
 import DatabaseViews from "./pages/DatabaseViews";
+import StoredProcedures from "./pages/StoredProcedures";
+import Functions from "./pages/Functions";
+import FinancialAnalytics from "./pages/FinancialAnalytics";
+import FarmComparison from "./pages/FarmComparison";
+import EditFarm from "./pages/EditFarm";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -163,6 +168,22 @@ function App() {
           }
         />
         <Route
+          path="/stored-procedures"
+          element={
+            <ProtectedRoute>
+              <StoredProcedures />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/functions"
+          element={
+            <ProtectedRoute>
+              <Functions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/pest-disease"
           element={
             <ProtectedRoute>
@@ -224,21 +245,26 @@ function App() {
           }
         />
         <Route
-          path="/farms/:farmId/edit"
+          path="/farms/:farm_id/edit"
           element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-green-50 flex items-center justify-center">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold text-gray-900 mb-4">✏️ Edit Farm</h1>
-                  <p className="text-gray-600">Farm editing functionality is coming soon!</p>
-                  <button
-                    onClick={() => window.history.back()}
-                    className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    ← Back to Farms
-                  </button>
-                </div>
-              </div>
+              <EditFarm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/financial-analytics"
+          element={
+            <ProtectedRoute>
+              <FinancialAnalytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/farm-comparison"
+          element={
+            <ProtectedRoute>
+              <FarmComparison />
             </ProtectedRoute>
           }
         />

@@ -177,4 +177,68 @@ router.post("/", async (req, res) => {
   }
 });
 
+// UPDATE payment status for a sale
+router.put("/:sale_id/payment-status", async (req, res) => {
+  const { sale_id } = req.params;
+  const { payment_status } = req.body;
+  const farmer_id = req.farmer?.farmer_id;
+
+  if (!farmer_id) {
+    return res.status(401).json({ message: "Unauthorized - farmer not found" });
+  }
+
+  if (!payment_status) {
+    return res.status(400).json({ message: "payment_status is required" });
+  }
+
+  const validStatuses = ['PENDING', 'PAID', 'PARTIAL', 'OVERDUE'];
+  if (!validStatuses.includes(payment_status)) {
+    return res.status(400).json({ message: "Invalid payment status. Must be: PENDING, PAID, PARTIAL, or OVERDUE" });
+  }
+
+  let connection;
+  try {
+    connection = await getConnection();
+
+    // Verify sale belongs to farmer
+    const saleCheck = await connection.execute(
+      `SELECT s.sale_id, s.payment_status as old_status, s.buyer_name
+       FROM SALES s
+       JOIN FARM f ON s.farm_id = f.farm_id
+       WHERE s.sale_id = :sale_id AND f.farmer_id = :farmer_id`,
+      { sale_id: parseInt(sale_id), farmer_id }
+    );
+
+    if (saleCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Sale not found or does not belong to you" });
+    }
+
+    const oldStatus = saleCheck.rows[0].OLD_STATUS;
+    const buyerName = saleCheck.rows[0].BUYER_NAME;
+
+    // Update payment status
+    await connection.execute(
+      `UPDATE SALES 
+       SET payment_status = :payment_status
+       WHERE sale_id = :sale_id`,
+      { payment_status, sale_id: parseInt(sale_id) },
+      { autoCommit: true }
+    );
+
+    res.json({
+      message: "Payment status updated successfully",
+      sale_id: parseInt(sale_id),
+      buyer_name: buyerName,
+      old_status: oldStatus,
+      new_status: payment_status
+    });
+
+  } catch (err) {
+    console.error("Error updating payment status:", err);
+    res.status(500).json({ message: "Failed to update payment status", error: err.message });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
 export default router;

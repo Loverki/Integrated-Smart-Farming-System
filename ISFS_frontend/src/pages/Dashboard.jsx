@@ -244,6 +244,7 @@ export default function Dashboard() {
   const [farmerStats, setFarmerStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showSQLModal, setShowSQLModal] = useState(false);
 
   // Check if logged in and fetch farmer statistics
   useEffect(() => {
@@ -347,7 +348,18 @@ export default function Dashboard() {
         {/* Statistics Overview */}
         {farmerStats && (
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Farm Overview</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Farm Overview</h2>
+              <button
+                onClick={() => setShowSQLModal(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+                View SQL Queries
+              </button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <StatCard
                 title="Total Farms"
@@ -410,12 +422,43 @@ export default function Dashboard() {
               <div className="text-sm opacity-90">Track crop sales</div>
             </button>
             <button
-              onClick={() => navigate("/analytics")}
+              onClick={() => navigate("/financial-analytics")}
               className="bg-gradient-to-r from-blue-400 to-blue-500 text-white p-4 rounded-lg hover:from-blue-500 hover:to-blue-600 transition-all transform hover:scale-105"
             >
-              <div className="text-2xl mb-2">📊</div>
-              <div className="font-semibold">View Analytics</div>
-              <div className="text-sm opacity-90">Farm performance</div>
+              <div className="text-2xl mb-2">💵</div>
+              <div className="font-semibold">Financial Analytics</div>
+              <div className="text-sm opacity-90">Track profits & costs</div>
+            </button>
+          </div>
+        </div>
+
+        {/* New: Farm Insights */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Farm Insights</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => navigate("/farm-comparison")}
+              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all text-left group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="text-4xl group-hover:scale-110 transition-transform">🏆</div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Farm Performance Comparison</h3>
+                  <p className="text-sm text-gray-600">Compare yields and profitability across all your farms</p>
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate("/financial-analytics")}
+              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all text-left group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="text-4xl group-hover:scale-110 transition-transform">💰</div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Financial Overview</h3>
+                  <p className="text-sm text-gray-600">View investments, costs, profits, and ROI</p>
+                </div>
+              </div>
             </button>
           </div>
         </div>
@@ -473,10 +516,10 @@ export default function Dashboard() {
               <p className="text-sm text-gray-600 mb-3">JOIN operations across farms, crops, and sales tables</p>
               <ComplexQueryViz />
               <button
-                onClick={() => navigate("/query-builder")}
+                onClick={() => navigate("/database-views")}
                 className="mt-3 w-full bg-blue-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
               >
-                Try Query Builder →
+                View Analytics →
               </button>
             </div>
 
@@ -505,10 +548,10 @@ export default function Dashboard() {
               <p className="text-sm text-gray-600 mb-3">Automated profitability and yield calculations</p>
               <StoredProcedureViz />
               <button
-                onClick={() => navigate("/automated-reports")}
+                onClick={() => navigate("/stored-procedures")}
                 className="mt-3 w-full bg-orange-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
               >
-                Generate Reports →
+                Execute Procedures →
               </button>
             </div>
 
@@ -521,10 +564,10 @@ export default function Dashboard() {
               <p className="text-sm text-gray-600 mb-3">Automated actions on INSERT, UPDATE, DELETE</p>
               <TriggerViz />
               <button
-                onClick={() => navigate("/notifications")}
+                onClick={() => navigate("/functions")}
                 className="mt-3 w-full bg-yellow-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors"
               >
-                View Alerts →
+                View Functions →
               </button>
             </div>
 
@@ -537,10 +580,10 @@ export default function Dashboard() {
               <p className="text-sm text-gray-600 mb-3">ACID compliance with COMMIT and ROLLBACK</p>
               <TransactionViz />
               <button
-                onClick={() => navigate("/transaction-log")}
+                onClick={() => navigate("/database-views")}
                 className="mt-3 w-full bg-indigo-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors"
               >
-                View Logs →
+                View Analytics →
               </button>
             </div>
 
@@ -553,10 +596,10 @@ export default function Dashboard() {
               <p className="text-sm text-gray-600 mb-3">Role-based access control and permissions</p>
               <SecurityViz />
               <button
-                onClick={() => navigate("/security-settings")}
+                onClick={() => navigate("/functions")}
                 className="mt-3 w-full bg-green-500 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
               >
-                Security Info →
+                Execute Functions →
               </button>
             </div>
 
@@ -591,6 +634,136 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* SQL Query Modal */}
+      {showSQLModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowSQLModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-t-2xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-2xl font-bold">Farm Overview SQL Queries</h3>
+                  <p className="text-sm opacity-90 mt-1">Database queries executed to fetch dashboard statistics</p>
+                </div>
+                <button
+                  onClick={() => setShowSQLModal(false)}
+                  className="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Query 1: Total Farms */}
+              <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">🏡</span>
+                  <h4 className="font-bold text-gray-900">Total Farms Query</h4>
+                </div>
+                <pre className="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-x-auto font-mono whitespace-pre-wrap">
+{`SELECT COUNT(*) as total_farms
+FROM FARM
+WHERE farmer_id = :farmer_id`}
+                </pre>
+                <div className="mt-3 bg-white p-3 rounded">
+                  <span className="text-sm font-semibold text-gray-700">Result: </span>
+                  <span className="text-lg font-bold text-green-600">{farmerStats?.total_farms || 0} farms</span>
+                </div>
+              </div>
+
+              {/* Query 2: Total Crops */}
+              <div className="border-2 border-yellow-200 rounded-lg p-4 bg-yellow-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">🌾</span>
+                  <h4 className="font-bold text-gray-900">Total Crops Query</h4>
+                </div>
+                <pre className="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-x-auto font-mono whitespace-pre-wrap">
+{`SELECT COUNT(c.crop_id) as total_crops
+FROM CROP c
+JOIN FARM f ON c.farm_id = f.farm_id
+WHERE f.farmer_id = :farmer_id`}
+                </pre>
+                <div className="mt-3 bg-white p-3 rounded">
+                  <span className="text-sm font-semibold text-gray-700">Result: </span>
+                  <span className="text-lg font-bold text-yellow-600">{farmerStats?.total_crops || 0} crops</span>
+                </div>
+              </div>
+
+              {/* Query 3: Total Revenue */}
+              <div className="border-2 border-emerald-200 rounded-lg p-4 bg-emerald-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">💰</span>
+                  <h4 className="font-bold text-gray-900">Total Revenue Query</h4>
+                </div>
+                <pre className="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-x-auto font-mono whitespace-pre-wrap">
+{`SELECT NVL(SUM(s.total_amount), 0) as total_revenue
+FROM SALES s
+JOIN FARM f ON s.farm_id = f.farm_id
+WHERE f.farmer_id = :farmer_id`}
+                </pre>
+                <div className="mt-3 bg-white p-3 rounded">
+                  <span className="text-sm font-semibold text-gray-700">Result: </span>
+                  <span className="text-lg font-bold text-emerald-600">${farmerStats?.total_revenue || 0}</span>
+                </div>
+              </div>
+
+              {/* Query 4: Average Yield */}
+              <div className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">📈</span>
+                  <h4 className="font-bold text-gray-900">Average Yield Query</h4>
+                </div>
+                <pre className="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-x-auto font-mono whitespace-pre-wrap">
+{`SELECT 
+  NVL(AVG(c.expected_yield), 0) as avg_expected_yield,
+  NVL(AVG(c.actual_yield), 0) as avg_actual_yield
+FROM CROP c
+JOIN FARM f ON c.farm_id = f.farm_id
+WHERE f.farmer_id = :farmer_id`}
+                </pre>
+                <div className="mt-3 bg-white p-3 rounded">
+                  <span className="text-sm font-semibold text-gray-700">Result: </span>
+                  <span className="text-lg font-bold text-purple-600">{farmerStats?.avg_yield || 0} kg</span>
+                </div>
+              </div>
+
+              {/* Query Execution Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-900 mb-2">Query Execution Details</h4>
+                <div className="text-sm text-blue-800 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>All queries use JOINs to fetch related data</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>NVL function handles NULL values gracefully</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Filtered by farmer_id for data security</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Aggregate functions (COUNT, SUM, AVG) for statistics</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

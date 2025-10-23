@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../api/axios";
+import SQLQueryVisualizer from "../components/SQLQueryVisualizer";
 
 export default function Sales() {
   const navigate = useNavigate();
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updateModal, setUpdateModal] = useState({ show: false, sale: null });
+  const [updating, setUpdating] = useState(false);
+  const [updateQueries, setUpdateQueries] = useState([]);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [newStatus, setNewStatus] = useState("");
 
   useEffect(() => {
     fetchSales();
@@ -37,6 +43,101 @@ export default function Sales() {
       case 'PARTIAL': return 'bg-orange-100 text-orange-800';
       case 'OVERDUE': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleUpdateClick = (sale) => {
+    const currentStatus = sale.PAYMENT_STATUS || sale.payment_status || sale[11] || 'PENDING';
+    setUpdateModal({ show: true, sale });
+    setNewStatus(currentStatus);
+    setUpdateQueries([]);
+    setSuccessMessage("");
+  };
+
+  const confirmUpdate = async () => {
+    if (!updateModal.sale) return;
+
+    const saleId = updateModal.sale.SALE_ID || updateModal.sale.sale_id || updateModal.sale[0];
+    const buyerName = updateModal.sale.BUYER_NAME || updateModal.sale.buyer_name || updateModal.sale[3];
+    const oldStatus = updateModal.sale.PAYMENT_STATUS || updateModal.sale.payment_status || updateModal.sale[11] || 'PENDING';
+
+    if (newStatus === oldStatus) {
+      setError("New status must be different from current status");
+      return;
+    }
+
+    setUpdating(true);
+    setUpdateQueries([
+      {
+        query: "Validating sale ownership...",
+        status: "executing",
+        description: "Checking if sale belongs to farmer"
+      },
+      {
+        query: "Updating payment status...",
+        status: "pending",
+        description: "Changing payment status"
+      }
+    ]);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setUpdateQueries([
+        {
+          query: `SELECT s.sale_id, s.payment_status as old_status, s.buyer_name
+FROM SALES s
+JOIN FARM f ON s.farm_id = f.farm_id
+WHERE s.sale_id = ${saleId} AND f.farmer_id = :farmer_id`,
+          status: "success",
+          description: "Sale ownership verified"
+        },
+        {
+          query: "Updating payment status...",
+          status: "executing",
+          description: "Changing payment status"
+        }
+      ]);
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      await axios.put(`/sales/${saleId}/payment-status`, { payment_status: newStatus });
+
+      setUpdateQueries([
+        {
+          query: `SELECT s.sale_id, s.payment_status as old_status, s.buyer_name
+FROM SALES s
+JOIN FARM f ON s.farm_id = f.farm_id
+WHERE s.sale_id = ${saleId} AND f.farmer_id = :farmer_id`,
+          status: "success",
+          description: "Sale ownership verified"
+        },
+        {
+          query: `UPDATE SALES
+SET payment_status = '${newStatus}'
+WHERE sale_id = ${saleId}`,
+          status: "success",
+          description: `Payment status updated from "${oldStatus}" to "${newStatus}" for buyer "${buyerName}"`
+        }
+      ]);
+
+      setSuccessMessage(`Payment status updated successfully!`);
+      
+      // Refresh the sales list
+      await fetchSales();
+      
+      // Close modal after short delay
+      setTimeout(() => {
+        setUpdateModal({ show: false, sale: null });
+        setSuccessMessage("");
+      }, 2000);
+
+    } catch (err) {
+      console.error("Error updating payment status:", err);
+      setError(err.response?.data?.message || "Failed to update payment status");
+      setUpdateQueries(prev => prev.map(q => ({ ...q, status: "error" })));
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -108,17 +209,13 @@ export default function Sales() {
                 <thead className="bg-green-100 text-green-800">
                   <tr>
                     <th className="p-3 border">ID</th>
-                    <th className="p-3 border">Farm</th>
-                    <th className="p-3 border">Crop</th>
                     <th className="p-3 border">Buyer Name</th>
-                    <th className="p-3 border">Buyer Contact</th>
+                    <th className="p-3 border">Crop</th>
                     <th className="p-3 border">Quantity</th>
-                    <th className="p-3 border">Price/Unit</th>
                     <th className="p-3 border">Total Amount</th>
                     <th className="p-3 border">Sale Date</th>
-                    <th className="p-3 border">Payment Method</th>
                     <th className="p-3 border">Payment Status</th>
-                    <th className="p-3 border">Invoice #</th>
+                    <th className="p-3 border">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -143,15 +240,17 @@ export default function Sales() {
                     return (
                       <tr key={index} className="hover:bg-green-50 transition-colors">
                         <td className="p-3 border font-mono text-sm">{id}</td>
-                        <td className="p-3 border">{farmName || `Farm #${farmId}` || '-'}</td>
-                        <td className="p-3 border font-semibold">{cropName || `Crop #${cropId}` || '-'}</td>
-                        <td className="p-3 border">{buyerName || '-'}</td>
-                        <td className="p-3 border text-sm">{buyerContact || '-'}</td>
                         <td className="p-3 border">
-                          {quantity} {unit || 'KG'}
+                          <div className="font-semibold">{buyerName || '-'}</div>
+                          <div className="text-xs text-gray-600">{buyerContact || '-'}</div>
                         </td>
-                        <td className="p-3 border font-semibold text-green-700">
-                          ₹{pricePerUnit ? parseFloat(pricePerUnit).toFixed(2) : '-'}
+                        <td className="p-3 border">
+                          <div className="font-semibold">{cropName || `Crop #${cropId}` || '-'}</div>
+                          <div className="text-xs text-gray-600">{farmName || `Farm #${farmId}` || '-'}</div>
+                        </td>
+                        <td className="p-3 border">
+                          <div className="font-semibold">{quantity} {unit || 'KG'}</div>
+                          <div className="text-xs text-gray-600">₹{pricePerUnit ? parseFloat(pricePerUnit).toFixed(2) : '-'}/unit</div>
                         </td>
                         <td className="p-3 border font-bold text-green-800">
                           ₹{totalAmount ? parseFloat(totalAmount).toLocaleString() : '-'}
@@ -159,17 +258,22 @@ export default function Sales() {
                         <td className="p-3 border text-sm">
                           {saleDate ? new Date(saleDate).toLocaleDateString() : '-'}
                         </td>
-                        <td className="p-3 border text-sm">
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                            {paymentMethod || 'CASH'}
-                          </span>
-                        </td>
                         <td className="p-3 border">
                           <span className={`px-2 py-1 rounded text-sm ${getPaymentStatusColor(paymentStatus)}`}>
                             {paymentStatus || 'PENDING'}
                           </span>
                         </td>
-                        <td className="p-3 border text-sm font-mono">{invoiceNumber || '-'}</td>
+                        <td className="p-3 border">
+                          <button
+                            onClick={() => handleUpdateClick(sale)}
+                            className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors text-sm font-semibold flex items-center gap-1"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Update
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -202,6 +306,137 @@ export default function Sales() {
           )}
         </div>
       </div>
+
+      {/* Update Payment Status Modal */}
+      {updateModal.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => !updating && setUpdateModal({ show: false, sale: null })}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <div>
+                  <h3 className="text-2xl font-bold">Update Payment Status</h3>
+                  <p className="text-sm opacity-90 mt-1">Change the payment status for this sale</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {successMessage ? (
+                <div className="bg-green-50 border-2 border-green-500 text-green-700 px-6 py-4 rounded-lg flex items-center gap-3 mb-4">
+                  <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="font-semibold">{successMessage}</span>
+                </div>
+              ) : (
+                <>
+                  {/* Sale Details */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-3">Sale Details</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600">Buyer:</span>
+                        <div className="font-semibold">{updateModal.sale?.BUYER_NAME || updateModal.sale?.buyer_name || updateModal.sale?.[3]}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Crop:</span>
+                        <div className="font-semibold">{updateModal.sale?.CROP_NAME || updateModal.sale?.crop_name || updateModal.sale?.[15] || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Amount:</span>
+                        <div className="font-semibold text-green-700">
+                          ₹{(updateModal.sale?.TOTAL_AMOUNT || updateModal.sale?.total_amount || updateModal.sale?.[8] || 0).toLocaleString()}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Current Status:</span>
+                        <div>
+                          <span className={`px-2 py-1 rounded text-xs ${getPaymentStatusColor(updateModal.sale?.PAYMENT_STATUS || updateModal.sale?.payment_status || updateModal.sale?.[11])}`}>
+                            {updateModal.sale?.PAYMENT_STATUS || updateModal.sale?.payment_status || updateModal.sale?.[11] || 'PENDING'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Selector */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      New Payment Status
+                    </label>
+                    <select
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      disabled={updating}
+                    >
+                      <option value="PENDING">PENDING - Payment not yet received</option>
+                      <option value="PARTIAL">PARTIAL - Partial payment received</option>
+                      <option value="PAID">PAID - Full payment received</option>
+                      <option value="OVERDUE">OVERDUE - Payment overdue</option>
+                    </select>
+                  </div>
+
+                  {/* SQL Visualization */}
+                  {updateQueries.length > 0 && (
+                    <div className="mb-4">
+                      <SQLQueryVisualizer 
+                        queries={updateQueries}
+                      />
+                    </div>
+                  )}
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Note
+                    </h4>
+                    <p className="text-sm text-blue-800">
+                      This will update the payment status in the database. The change will be reflected immediately in your sales records.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {!successMessage && (
+              <div className="p-6 bg-gray-50 border-t flex justify-end gap-3">
+                <button
+                  onClick={() => setUpdateModal({ show: false, sale: null })}
+                  disabled={updating}
+                  className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmUpdate}
+                  disabled={updating}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {updating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Update Status
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

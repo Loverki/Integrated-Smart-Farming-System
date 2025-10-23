@@ -118,4 +118,98 @@ router.post("/", async (req, res) => {
   }
 });
 
+// UPDATE farm details
+router.put("/:farm_id", async (req, res) => {
+  const { farm_id } = req.params;
+  const { farm_name, location, area, soil_type, soil_ph, irrigation_type, farm_type } = req.body;
+  const farmer_id = req.farmer?.farmer_id;
+
+  if (!farmer_id) {
+    return res.status(401).json({ message: "Unauthorized - farmer not found" });
+  }
+
+  let connection;
+  try {
+    connection = await getConnection();
+
+    // Verify farm belongs to farmer
+    const farmCheck = await connection.execute(
+      `SELECT farm_id FROM FARM WHERE farm_id = :farm_id AND farmer_id = :farmer_id`,
+      { farm_id: parseInt(farm_id), farmer_id }
+    );
+
+    if (farmCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Farm not found or does not belong to you" });
+    }
+
+    // Update farm
+    await connection.execute(
+      `UPDATE FARM 
+       SET farm_name = :farm_name,
+           location = :location,
+           area = :area,
+           soil_type = :soil_type,
+           soil_ph = :soil_ph,
+           irrigation_type = :irrigation_type,
+           farm_type = :farm_type
+       WHERE farm_id = :farm_id`,
+      {
+        farm_name,
+        location,
+        area: parseFloat(area),
+        soil_type: soil_type || null,
+        soil_ph: soil_ph ? parseFloat(soil_ph) : null,
+        irrigation_type: irrigation_type || null,
+        farm_type: farm_type || 'CONVENTIONAL',
+        farm_id: parseInt(farm_id)
+      },
+      { autoCommit: true }
+    );
+
+    res.json({
+      message: "Farm updated successfully",
+      farm_id: parseInt(farm_id),
+      farm_name
+    });
+
+  } catch (err) {
+    console.error("Error updating farm:", err);
+    res.status(500).json({ message: "Failed to update farm", error: err.message });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
+// GET single farm by ID (for edit form)
+router.get("/:farm_id", async (req, res) => {
+  const { farm_id } = req.params;
+  const farmer_id = req.farmer?.farmer_id;
+
+  if (!farmer_id) {
+    return res.status(401).json({ message: "Unauthorized - farmer not found" });
+  }
+
+  let connection;
+  try {
+    connection = await getConnection();
+
+    const result = await connection.execute(
+      `SELECT * FROM FARM WHERE farm_id = :farm_id AND farmer_id = :farmer_id`,
+      { farm_id: parseInt(farm_id), farmer_id }
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Farm not found" });
+    }
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("Error fetching farm:", err);
+    res.status(500).json({ message: "Failed to fetch farm", error: err.message });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
 export default router;

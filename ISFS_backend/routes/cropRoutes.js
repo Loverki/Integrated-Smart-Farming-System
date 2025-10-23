@@ -173,4 +173,53 @@ router.post("/", async (req, res) => {
   }
 });
 
+// DELETE a crop
+router.delete("/:crop_id", async (req, res) => {
+  const { crop_id } = req.params;
+  const farmer_id = req.farmer?.farmer_id;
+
+  if (!farmer_id) {
+    return res.status(401).json({ message: "Unauthorized - farmer not found" });
+  }
+
+  let connection;
+  try {
+    connection = await getConnection();
+
+    // Verify crop belongs to farmer
+    const cropCheck = await connection.execute(
+      `SELECT c.crop_id, c.crop_name, f.farmer_id
+       FROM CROP c
+       JOIN FARM f ON c.farm_id = f.farm_id
+       WHERE c.crop_id = :crop_id AND f.farmer_id = :farmer_id`,
+      { crop_id: parseInt(crop_id), farmer_id }
+    );
+
+    if (cropCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Crop not found or does not belong to you" });
+    }
+
+    const cropName = cropCheck.rows[0].CROP_NAME;
+
+    // Delete the crop (CASCADE will handle related records)
+    await connection.execute(
+      `DELETE FROM CROP WHERE crop_id = :crop_id`,
+      { crop_id: parseInt(crop_id) },
+      { autoCommit: true }
+    );
+
+    res.json({
+      message: "Crop deleted successfully",
+      crop_id: parseInt(crop_id),
+      crop_name: cropName
+    });
+
+  } catch (err) {
+    console.error("Error deleting crop:", err);
+    res.status(500).json({ message: "Failed to delete crop", error: err.message });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
 export default router;

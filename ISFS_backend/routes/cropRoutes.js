@@ -8,12 +8,15 @@ router.get("/", async (req, res) => {
   const farmer_id = req.farmer?.farmer_id;
 
   if (!farmer_id) {
+    console.error("❌ Unauthorized access attempt - no farmer_id found");
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
   }
 
   let connection;
   try {
     connection = await getConnection();
+
+    console.log(`📊 Fetching crops for farmer ${farmer_id}`);
 
     const result = await connection.execute(
       `
@@ -31,7 +34,6 @@ router.get("/", async (req, res) => {
         c.seed_quantity,
         c.planting_density,
         c.growth_stage,
-        c.notes,
         f.farm_name,
         f.location AS farm_location
       FROM CROP c
@@ -42,12 +44,35 @@ router.get("/", async (req, res) => {
       { farmer_id }
     );
 
-    res.json(result.rows || []);
+    console.log(`✅ Retrieved ${result.rows ? result.rows.length : 0} crops for farmer ${farmer_id}`);
+    
+    // Manually map to plain objects to avoid circular reference issues
+    const crops = (result.rows || []).map(row => {
+      const obj = {};
+      for (const key in row) {
+        if (row.hasOwnProperty(key)) {
+          obj[key] = row[key];
+        }
+      }
+      return obj;
+    });
+    
+    res.json(crops);
   } catch (err) {
-    console.error("Get crops error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("❌ Get crops error:", err.message);
+    console.error("Full error:", err);
+    res.status(500).json({ 
+      error: err.message,
+      message: "Failed to fetch crops. Please try again later."
+    });
   } finally {
-    if (connection) await connection.close();
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (closeErr) {
+        console.error("❌ Error closing connection:", closeErr);
+      }
+    }
   }
 });
 

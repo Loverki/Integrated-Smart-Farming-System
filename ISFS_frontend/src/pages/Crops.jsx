@@ -21,23 +21,13 @@ export default function Crops() {
     } catch (err) {
       console.error("Error fetching crops:", err);
       setError("Failed to load crops. Please try again.");
+      // Handle 401 errors by redirecting to login
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         navigate("/login");
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'PLANTED': return 'bg-blue-100 text-blue-800';
-      case 'GROWING': return 'bg-green-100 text-green-800';
-      case 'MATURE': return 'bg-yellow-100 text-yellow-800';
-      case 'HARVESTED': return 'bg-purple-100 text-purple-800';
-      case 'DAMAGED': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -114,30 +104,32 @@ export default function Crops() {
                     <th className="p-3 border">Variety</th>
                     <th className="p-3 border">Sowing Date</th>
                     <th className="p-3 border">Expected Harvest</th>
-                    <th className="p-3 border">Expected Yield</th>
+                    <th className="p-3 border">Expected Yield (kg)</th>
                     <th className="p-3 border">Status</th>
-                    <th className="p-3 border">Growth Stage</th>
                   </tr>
                 </thead>
                 <tbody>
                   {crops.map((crop, index) => {
                     // Handle both object and array formats
-                    const id = crop.CROP_ID || crop.crop_id || crop[0];
-                    const farmName = crop.FARM_NAME || crop.farm_name || crop[1];
+                    const cropId = crop.CROP_ID || crop.crop_id || crop[0];
+                    const farmName = crop.FARM_NAME || crop.farm_name || crop[14];
                     const cropName = crop.CROP_NAME || crop.crop_name || crop[2];
                     const variety = crop.VARIETY || crop.variety || crop[3];
                     const sowingDate = crop.SOWING_DATE || crop.sowing_date || crop[4];
                     const expectedHarvest = crop.EXPECTED_HARVEST_DATE || crop.expected_harvest_date || crop[5];
                     const expectedYield = crop.EXPECTED_YIELD || crop.expected_yield || crop[7];
                     const status = crop.CROP_STATUS || crop.crop_status || crop[9];
-                    const growthStage = crop.GROWTH_STAGE || crop.growth_stage || crop[12];
 
                     return (
                       <tr key={index} className="hover:bg-green-50 transition-colors">
-                        <td className="p-3 border font-mono text-sm">{id}</td>
+                        <td className="p-3 border font-mono text-sm">{cropId}</td>
                         <td className="p-3 border">{farmName || '-'}</td>
                         <td className="p-3 border font-semibold">{cropName}</td>
-                        <td className="p-3 border text-sm">{variety || '-'}</td>
+                        <td className="p-3 border">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                            {variety || 'Standard'}
+                          </span>
+                        </td>
                         <td className="p-3 border text-sm">
                           {sowingDate ? new Date(sowingDate).toLocaleDateString() : '-'}
                         </td>
@@ -145,37 +137,26 @@ export default function Crops() {
                           {expectedHarvest ? new Date(expectedHarvest).toLocaleDateString() : '-'}
                         </td>
                         <td className="p-3 border font-semibold text-green-700">
-                          {expectedYield ? `${parseFloat(expectedYield).toLocaleString()} kg` : '-'}
+                          {expectedYield ? parseFloat(expectedYield).toLocaleString() : '-'}
                         </td>
                         <td className="p-3 border">
-                          <span className={`px-2 py-1 rounded text-sm ${getStatusColor(status)}`}>
+                          <span className={`px-2 py-1 rounded text-sm ${
+                            status === 'PLANTED' ? 'bg-blue-100 text-blue-800' :
+                            status === 'GROWING' ? 'bg-green-100 text-green-800' :
+                            status === 'MATURE' ? 'bg-yellow-100 text-yellow-800' :
+                            status === 'HARVESTED' ? 'bg-purple-100 text-purple-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
                             {status || 'PLANTED'}
                           </span>
                         </td>
-                        <td className="p-3 border text-sm">{growthStage || '-'}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-              <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
-                <div>
-                  Total Crops: <span className="font-semibold">{crops.length}</span>
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-                    Planted: {crops.filter(c => (c.CROP_STATUS || c.crop_status || c[9]) === 'PLANTED').length}
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                    Growing: {crops.filter(c => (c.CROP_STATUS || c.crop_status || c[9]) === 'GROWING').length}
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
-                    Harvested: {crops.filter(c => (c.CROP_STATUS || c.crop_status || c[9]) === 'HARVESTED').length}
-                  </div>
-                </div>
+              <div className="mt-4 text-sm text-gray-600">
+                Total Crops: <span className="font-semibold">{crops.length}</span>
               </div>
             </div>
           )}

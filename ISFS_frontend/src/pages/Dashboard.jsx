@@ -24,15 +24,23 @@ const featureCards = [
     description: "Monitor work hours, skills, and wage calculations.",
     icon: "👥",
     viewRoute: "/labours",
-    addRoute: "/add-labour",
+    addRoute: "/add-labours",
     color: "bg-blue-500"
+  },
+  {
+    name: "Labour Work & Attendance",
+    description: "Track daily attendance, work hours, and manage payments.",
+    icon: "📋",
+    viewRoute: "/labour-work",
+    addRoute: "/add-labour-work",
+    color: "bg-teal-500"
   },
   {
     name: "Fertilizer Tracking",
     description: "Record fertilizer applications and effectiveness ratings.",
     icon: "🧪",
     viewRoute: "/fertilizers",
-    addRoute: "/add-fertilizer",
+    addRoute: "/add-fertilizers",
     color: "bg-purple-500"
   },
   {
@@ -48,7 +56,7 @@ const featureCards = [
     description: "Track crop sales, revenue, and financial analytics.",
     icon: "💰",
     viewRoute: "/sales",
-    addRoute: "/add-sale",
+    addRoute: "/add-sales",
     color: "bg-emerald-500"
   }
 ];
@@ -414,7 +422,7 @@ export default function Dashboard() {
               <div className="text-sm opacity-90">Record crop planting</div>
             </button>
             <button
-              onClick={() => navigate("/add-sale")}
+              onClick={() => navigate("/add-sales")}
               className="bg-gradient-to-r from-green-400 to-green-500 text-white p-4 rounded-lg hover:from-green-500 hover:to-green-600 transition-all transform hover:scale-105"
             >
               <div className="text-2xl mb-2">💰</div>

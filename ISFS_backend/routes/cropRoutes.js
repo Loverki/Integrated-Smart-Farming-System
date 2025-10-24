@@ -3,9 +3,10 @@ import { getConnection } from "../database/connection.js";
 
 const router = express.Router();
 
-// GET all crops for the logged-in farmer
+// GET all crops for the logged-in farmer (optionally filtered by farm_id)
 router.get("/", async (req, res) => {
   const farmer_id = req.farmer?.farmer_id;
+  const { farm_id } = req.query; // Optional farm_id filter
 
   if (!farmer_id) {
     console.error("❌ Unauthorized access attempt - no farmer_id found");
@@ -16,10 +17,10 @@ router.get("/", async (req, res) => {
   try {
     connection = await getConnection();
 
-    console.log(`📊 Fetching crops for farmer ${farmer_id}`);
+    console.log(`📊 Fetching crops for farmer ${farmer_id}${farm_id ? ` (farm ${farm_id})` : ''}`);
 
-    const result = await connection.execute(
-      `
+    // Build query with optional farm_id filter
+    let query = `
       SELECT 
         c.crop_id,
         c.farm_id,
@@ -39,12 +40,34 @@ router.get("/", async (req, res) => {
       FROM CROP c
       JOIN FARM f ON c.farm_id = f.farm_id
       WHERE f.farmer_id = :farmer_id
-      ORDER BY c.sowing_date DESC
-      `,
-      { farmer_id }
-    );
+    `;
+    
+    const binds = { farmer_id };
+    
+    // Add farm_id filter if provided
+    if (farm_id) {
+      query += ` AND c.farm_id = :farm_id`;
+      binds.farm_id = parseInt(farm_id);
+      console.log(`🔍 Filtering crops by farm_id: ${farm_id}`);
+    } else {
+      console.log(`📊 Fetching ALL crops for farmer ${farmer_id}`);
+    }
+    
+    query += ` ORDER BY c.sowing_date DESC`;
 
-    console.log(`✅ Retrieved ${result.rows ? result.rows.length : 0} crops for farmer ${farmer_id}`);
+    const result = await connection.execute(query, binds);
+
+    console.log(`✅ Retrieved ${result.rows ? result.rows.length : 0} crops for farmer ${farmer_id}${farm_id ? ` (farm ${farm_id})` : ''}`);
+    
+    // Log farm names to verify filtering
+    if (result.rows && result.rows.length > 0) {
+      console.log('Crops returned:', result.rows.map(r => ({
+        crop_id: r.CROP_ID,
+        crop_name: r.CROP_NAME,
+        farm_id: r.FARM_ID,
+        farm_name: r.FARM_NAME
+      })));
+    }
     
     // Manually map to plain objects to avoid circular reference issues
     const crops = (result.rows || []).map(row => {

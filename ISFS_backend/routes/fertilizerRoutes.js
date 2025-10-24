@@ -20,7 +20,7 @@ router.get("/", async (req, res) => {
     connection = await getConnection();
     const result = await connection.execute(
       `
-      SELECT 
+      SELECT DISTINCT
         fer.fertilizer_id,
         fer.farm_id,
         fer.fertilizer_name,
@@ -44,6 +44,14 @@ router.get("/", async (req, res) => {
       `,
       { farmer_id }
     );
+    
+    console.log(`✅ Retrieved ${result.rows?.length || 0} fertilizers for farmer ${farmer_id}`);
+    
+    // Log each fertilizer for debugging
+    result.rows?.forEach((row, i) => {
+      console.log(`  ${i + 1}. ID: ${row.FERTILIZER_ID}, Name: ${row.FERTILIZER_NAME}, Farm: ${row.FARM_NAME}`);
+    });
+    
     res.json(result.rows || []);
   } catch (err) {
     console.error("Get fertilizers error:", err);

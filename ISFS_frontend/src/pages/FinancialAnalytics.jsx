@@ -20,10 +20,10 @@ export default function FinancialAnalytics() {
     
     // Initialize query visualization
     setQueries([
-      { query: "Fetching revenue data...", status: "executing", description: "Calculating total revenue from sales" },
-      { query: "Fetching cost data...", status: "pending", description: "Calculating fertilizer and labour costs" },
-      { query: "Fetching equipment investment...", status: "pending", description: "Calculating equipment investment" },
-      { query: "Calculating profit metrics...", status: "pending", description: "Computing profit, margin, and ROI" }
+      { type: "Revenue Query", sql: "Fetching revenue data...", status: "executing", description: "Calculating total revenue from sales" },
+      { type: "Cost Queries", sql: "Fetching cost data...", status: "pending", description: "Calculating fertilizer and labour costs" },
+      { type: "Investment Query", sql: "Fetching equipment investment...", status: "pending", description: "Calculating equipment investment" },
+      { type: "Profit Calculation", sql: "Calculating profit metrics...", status: "pending", description: "Computing profit, margin, and ROI" }
     ]);
     setShowSQL(true);
 
@@ -61,22 +61,24 @@ export default function FinancialAnalytics() {
       const endTime = Date.now();
 
       setQueries(prev => prev.map((q, i) => 
-        i === 3 ? { ...q, status: "success", executionTime: endTime - startTime } : q
+        i === 3 ? { ...q, status: "success", time: endTime - startTime } : q
       ));
 
       // Update with actual SQL queries
       setQueries([
         {
-          query: `SELECT NVL(SUM(s.total_amount), 0) as total_revenue
+          type: "Revenue Query",
+          sql: `SELECT NVL(SUM(s.total_amount), 0) as total_revenue
 FROM SALES s
 JOIN FARM f ON s.farm_id = f.farm_id
 WHERE f.farmer_id = :farmer_id`,
           status: "success",
           description: "Total Revenue from Sales",
-          result: `Revenue: $${response.data.total_revenue || 0}`
+          result: `Revenue: $${response.data.revenue?.total || 0}`
         },
         {
-          query: `-- Fertilizer Costs
+          type: "Cost Queries",
+          sql: `-- Fertilizer Costs
 SELECT NVL(SUM(fer.total_cost), 0) as fertilizer_cost
 FROM FERTILIZER fer
 JOIN FARM f ON fer.farm_id = f.farm_id
@@ -89,27 +91,29 @@ JOIN FARM f ON lw.farm_id = f.farm_id
 WHERE f.farmer_id = :farmer_id`,
           status: "success",
           description: "Total Operating Costs",
-          result: `Fertilizer: $${response.data.fertilizer_cost || 0}, Labour: $${response.data.labour_cost || 0}`
+          result: `Fertilizer: $${response.data.costs?.fertilizer || 0}, Labour: $${response.data.costs?.labour || 0}`
         },
         {
-          query: `SELECT 
+          type: "Investment Query",
+          sql: `SELECT 
   NVL(SUM(e.purchase_cost), 0) as equipment_investment,
   NVL(SUM(e.current_value), 0) as equipment_current_value
 FROM EQUIPMENT e
 WHERE e.farmer_id = :farmer_id`,
           status: "success",
           description: "Equipment Investment",
-          result: `Investment: $${response.data.equipment_investment || 0}, Current Value: $${response.data.equipment_current_value || 0}`
+          result: `Investment: $${response.data.investment?.equipment || 0}, Current Value: $${response.data.investment?.equipment_current_value || 0}`
         },
         {
-          query: `-- Calculated in backend:
+          type: "Profit Calculation",
+          sql: `-- Calculated in backend:
 -- profit = revenue - (fertilizer_cost + labour_cost)
 -- profit_margin = (profit / revenue) * 100
--- roi = (profit / equipment_investment) * 100`,
+-- roi = (profit / investment) * 100`,
           status: "success",
           description: "Profit Metrics Calculation",
-          result: `Profit: $${response.data.profit || 0}, Margin: ${response.data.profit_margin || 0}%, ROI: ${response.data.roi || 0}%`,
-          executionTime: endTime - startTime
+          result: `Profit: $${response.data.profit?.net || 0}, Margin: ${response.data.profit?.margin || 0}%, ROI: ${response.data.profit?.roi || 0}%`,
+          time: endTime - startTime
         }
       ]);
 
@@ -145,9 +149,9 @@ WHERE e.farmer_id = :farmer_id`,
   const CostBreakdownChart = ({ data }) => {
     if (!data) return null;
 
-    const totalCosts = data.fertilizer_cost + data.labour_cost;
-    const fertilizerPercent = totalCosts > 0 ? (data.fertilizer_cost / totalCosts * 100).toFixed(1) : 0;
-    const labourPercent = totalCosts > 0 ? (data.labour_cost / totalCosts * 100).toFixed(1) : 0;
+    const totalCosts = data.costs.total;
+    const fertilizerPercent = totalCosts > 0 ? (data.costs.fertilizer / totalCosts * 100).toFixed(1) : 0;
+    const labourPercent = totalCosts > 0 ? (data.costs.labour / totalCosts * 100).toFixed(1) : 0;
 
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -181,7 +185,7 @@ WHERE e.farmer_id = :farmer_id`,
                 <div className="text-xs text-gray-600">{fertilizerPercent}% of total costs</div>
               </div>
             </div>
-            <div className="text-lg font-bold text-purple-600">${data.fertilizer_cost || 0}</div>
+            <div className="text-lg font-bold text-purple-600">${data.costs.fertilizer || 0}</div>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
@@ -192,7 +196,7 @@ WHERE e.farmer_id = :farmer_id`,
                 <div className="text-xs text-gray-600">{labourPercent}% of total costs</div>
               </div>
             </div>
-            <div className="text-lg font-bold text-blue-600">${data.labour_cost || 0}</div>
+            <div className="text-lg font-bold text-blue-600">${data.costs.labour || 0}</div>
           </div>
 
           <div className="border-t-2 border-gray-200 pt-3 mt-3">
@@ -209,7 +213,7 @@ WHERE e.farmer_id = :farmer_id`,
   const ProfitOverview = ({ data }) => {
     if (!data) return null;
 
-    const isProfitable = data.profit > 0;
+    const isProfitable = data.profit.net > 0;
 
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -220,7 +224,7 @@ WHERE e.farmer_id = :farmer_id`,
           <div className="text-center">
             <div className="text-sm text-gray-600 mb-2">Net Profit</div>
             <div className={`text-4xl font-bold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
-              ${Math.abs(data.profit || 0).toFixed(2)}
+              ${Math.abs(data.profit.net || 0).toFixed(2)}
             </div>
             <div className={`text-sm mt-2 ${isProfitable ? 'text-green-700' : 'text-red-700'}`}>
               {isProfitable ? '✓ Profitable' : '⚠ Loss'}
@@ -232,17 +236,17 @@ WHERE e.farmer_id = :farmer_id`,
         <div className="space-y-2 text-sm">
           <div className="flex justify-between items-center p-2 bg-green-50 rounded">
             <span className="text-gray-700">Revenue</span>
-            <span className="font-semibold text-green-700">+${data.total_revenue || 0}</span>
+            <span className="font-semibold text-green-700">+${data.revenue.total || 0}</span>
           </div>
           <div className="flex justify-between items-center p-2 bg-red-50 rounded">
             <span className="text-gray-700">Operating Costs</span>
-            <span className="font-semibold text-red-700">-${(data.fertilizer_cost + data.labour_cost).toFixed(2)}</span>
+            <span className="font-semibold text-red-700">-${data.costs.total.toFixed(2)}</span>
           </div>
           <div className="border-t-2 border-gray-200 my-2"></div>
           <div className="flex justify-between items-center p-2 bg-gray-100 rounded font-bold">
             <span className="text-gray-900">Net Profit</span>
             <span className={isProfitable ? 'text-green-700' : 'text-red-700'}>
-              ${data.profit || 0}
+              ${data.profit.net || 0}
             </span>
           </div>
         </div>
@@ -251,11 +255,11 @@ WHERE e.farmer_id = :farmer_id`,
         <div className="grid grid-cols-2 gap-4 mt-4">
           <div className="bg-blue-50 p-3 rounded text-center">
             <div className="text-xs text-gray-600">Profit Margin</div>
-            <div className="text-2xl font-bold text-blue-600">{data.profit_margin || 0}%</div>
+            <div className="text-2xl font-bold text-blue-600">{data.profit.margin || 0}%</div>
           </div>
           <div className="bg-indigo-50 p-3 rounded text-center">
             <div className="text-xs text-gray-600">ROI</div>
-            <div className="text-2xl font-bold text-indigo-600">{data.roi || 0}%</div>
+            <div className="text-2xl font-bold text-indigo-600">{data.profit.roi || 0}%</div>
           </div>
         </div>
       </div>
@@ -282,10 +286,10 @@ WHERE e.farmer_id = :farmer_id`,
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate("/dashboard")}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                className="group bg-emerald-800 hover:bg-emerald-900 p-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 border-2 border-emerald-700 hover:border-emerald-600"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <svg className="w-6 h-6 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               <div>
@@ -295,12 +299,23 @@ WHERE e.farmer_id = :farmer_id`,
             </div>
             <button
               onClick={() => setShowSQL(!showSQL)}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              className={`relative px-5 py-2.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md ${
+                showSQL 
+                  ? 'bg-gray-900 text-green-400 hover:bg-gray-800 border-2 border-green-400' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
+              }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
               </svg>
-              {showSQL ? 'Hide' : 'Show'} SQL Queries
+              <span className="font-mono text-sm">
+                {showSQL ? 'Hide' : 'Show'} SQL
+              </span>
+              <span className={`ml-1 px-2 py-0.5 rounded text-xs font-bold ${
+                showSQL ? 'bg-green-400 text-gray-900' : 'bg-blue-500 text-white'
+              }`}>
+                QUERY
+              </span>
             </button>
           </div>
         </div>
@@ -318,7 +333,7 @@ WHERE e.farmer_id = :farmer_id`,
           <div className="mb-8">
             <SQLQueryVisualizer 
               queries={queries}
-              executionTime={queries[queries.length - 1]?.executionTime}
+              executionTime={queries[queries.length - 1]?.time}
             />
           </div>
         )}
@@ -329,29 +344,29 @@ WHERE e.farmer_id = :farmer_id`,
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <MetricCard
                 title="Total Revenue"
-                value={`$${financialData.total_revenue || 0}`}
+                value={`$${financialData.revenue.total || 0}`}
                 subtitle="From crop sales"
                 icon="💵"
                 color="#10B981"
               />
               <MetricCard
                 title="Operating Costs"
-                value={`$${(financialData.fertilizer_cost + financialData.labour_cost).toFixed(2)}`}
+                value={`$${financialData.costs.total.toFixed(2)}`}
                 subtitle="Fertilizer + Labour"
                 icon="💸"
                 color="#EF4444"
               />
               <MetricCard
                 title="Net Profit"
-                value={`$${financialData.profit || 0}`}
-                subtitle={financialData.profit > 0 ? 'Profitable' : 'Loss'}
-                icon={financialData.profit > 0 ? "✅" : "⚠️"}
-                color={financialData.profit > 0 ? "#10B981" : "#EF4444"}
+                value={`$${financialData.profit.net || 0}`}
+                subtitle={financialData.profit.net > 0 ? 'Profitable' : 'Loss'}
+                icon={financialData.profit.net > 0 ? "✅" : "⚠️"}
+                color={financialData.profit.net > 0 ? "#10B981" : "#EF4444"}
               />
               <MetricCard
                 title="Equipment Investment"
-                value={`$${financialData.equipment_investment || 0}`}
-                subtitle={`Current value: $${financialData.equipment_current_value || 0}`}
+                value={`$${financialData.investment.equipment || 0}`}
+                subtitle={`Current value: $${financialData.investment.equipment_current_value || 0}`}
                 icon="🔧"
                 color="#8B5CF6"
               />
@@ -370,17 +385,17 @@ WHERE e.farmer_id = :farmer_id`,
                 <div className="bg-purple-50 p-4 rounded-lg text-center">
                   <div className="text-2xl mb-2">🧪</div>
                   <div className="text-sm text-gray-600">Fertilizer Investment</div>
-                  <div className="text-xl font-bold text-purple-600">${financialData.fertilizer_cost || 0}</div>
+                  <div className="text-xl font-bold text-purple-600">${financialData.costs.fertilizer || 0}</div>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg text-center">
                   <div className="text-2xl mb-2">👥</div>
                   <div className="text-sm text-gray-600">Labour Investment</div>
-                  <div className="text-xl font-bold text-blue-600">${financialData.labour_cost || 0}</div>
+                  <div className="text-xl font-bold text-blue-600">${financialData.costs.labour || 0}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg text-center">
                   <div className="text-2xl mb-2">🔧</div>
                   <div className="text-sm text-gray-600">Equipment Investment</div>
-                  <div className="text-xl font-bold text-gray-600">${financialData.equipment_investment || 0}</div>
+                  <div className="text-xl font-bold text-gray-600">${financialData.investment.equipment || 0}</div>
                 </div>
               </div>
 
@@ -389,13 +404,13 @@ WHERE e.farmer_id = :farmer_id`,
                   <div>
                     <div className="text-sm text-gray-600">Total Investment</div>
                     <div className="text-2xl font-bold text-gray-900">
-                      ${(financialData.fertilizer_cost + financialData.labour_cost + financialData.equipment_investment).toFixed(2)}
+                      ${financialData.investment.total.toFixed(2)}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm text-gray-600">Return on Investment</div>
-                    <div className={`text-2xl font-bold ${financialData.roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {financialData.roi || 0}%
+                    <div className={`text-2xl font-bold ${financialData.profit.roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {financialData.profit.roi || 0}%
                     </div>
                   </div>
                 </div>
@@ -410,13 +425,13 @@ WHERE e.farmer_id = :farmer_id`,
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-gray-700">Profitability Score</span>
                     <span className="text-sm font-bold text-gray-900">
-                      {financialData.profit > 0 ? 'Excellent' : 'Needs Improvement'}
+                      {financialData.profit.net > 0 ? 'Excellent' : 'Needs Improvement'}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      className={`h-2 rounded-full ${financialData.profit > 0 ? 'bg-green-500' : 'bg-red-500'}`}
-                      style={{ width: `${Math.min(Math.abs(financialData.profit_margin), 100)}%` }}
+                      className={`h-2 rounded-full ${financialData.profit.net > 0 ? 'bg-green-500' : 'bg-red-500'}`}
+                      style={{ width: `${Math.min(Math.abs(financialData.profit.margin), 100)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -425,8 +440,8 @@ WHERE e.farmer_id = :farmer_id`,
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-gray-700">Cost Efficiency</span>
                     <span className="text-sm font-bold text-gray-900">
-                      {financialData.total_revenue > 0 
-                        ? `${(((financialData.fertilizer_cost + financialData.labour_cost) / financialData.total_revenue) * 100).toFixed(1)}% of revenue`
+                      {financialData.revenue.total > 0 
+                        ? `${((financialData.costs.total / financialData.revenue.total) * 100).toFixed(1)}% of revenue`
                         : 'N/A'}
                     </span>
                   </div>
@@ -434,8 +449,8 @@ WHERE e.farmer_id = :farmer_id`,
                     <div 
                       className="bg-blue-500 h-2 rounded-full"
                       style={{ 
-                        width: financialData.total_revenue > 0 
-                          ? `${Math.min(((financialData.fertilizer_cost + financialData.labour_cost) / financialData.total_revenue) * 100, 100)}%`
+                        width: financialData.revenue.total > 0 
+                          ? `${Math.min((financialData.costs.total / financialData.revenue.total) * 100, 100)}%`
                           : '0%'
                       }}
                     ></div>

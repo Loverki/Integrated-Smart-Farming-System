@@ -39,6 +39,7 @@ const startServer = async () => {
     const { default: farmRoutes } = await import("./routes/farmRoutes.js");
     const { default: cropRoutes } = await import("./routes/cropRoutes.js");
     const { default: labourRoutes } = await import("./routes/labourRoutes.js");
+    const { default: labourWorkRoutes } = await import("./routes/labourWorkRoutes.js");
     const { default: fertilizerRoutes } = await import("./routes/fertilizerRoutes.js");
     const { default: equipmentRoutes } = await import("./routes/equipmentRoutes.js");
     const { default: salesRoutes } = await import("./routes/salesRoutes.js");
@@ -58,6 +59,7 @@ const startServer = async () => {
     app.use("/api/farms", protect, farmRoutes);
     app.use("/api/crops", protect, cropRoutes);
     app.use("/api/labours", protect, labourRoutes);
+    app.use("/api/labour-work", protect, labourWorkRoutes);
     app.use("/api/fertilizers", protect, fertilizerRoutes);
     app.use("/api/equipment", protect, equipmentRoutes);
     app.use("/api/sales", protect, salesRoutes);

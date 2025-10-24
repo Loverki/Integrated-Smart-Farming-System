@@ -1,26 +1,44 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "../api/axios";
 
-export default function Crops() {
+export default function FarmCrops() {
   const navigate = useNavigate();
+  const { farmId } = useParams();
   const [crops, setCrops] = useState([]);
+  const [farm, setFarm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchCrops();
-  }, []);
+    if (farmId) {
+      fetchFarmAndCrops();
+    }
+  }, [farmId]);
 
-  const fetchCrops = async () => {
+  const fetchFarmAndCrops = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("/crops");
-      console.log(`✅ Received ${res.data.length} crops from all farms`);
-      setCrops(res.data);
+      
+      // Fetch farm details
+      const farmRes = await axios.get("/farms");
+      const allFarms = farmRes.data;
+      const currentFarm = allFarms.find(f => {
+        const fId = f.FARM_ID || f.farm_id || f[0];
+        return fId && fId.toString() === farmId;
+      });
+      
+      console.log(`🏡 Farm found:`, currentFarm);
+      setFarm(currentFarm);
+
+      // Fetch crops for this specific farm
+      const cropsRes = await axios.get(`/crops?farm_id=${farmId}`);
+      console.log(`🌾 Retrieved ${cropsRes.data.length} crops for farm ${farmId}`);
+      setCrops(cropsRes.data);
+      
       setError("");
     } catch (err) {
-      console.error("Error fetching crops:", err);
+      console.error("Error fetching data:", err);
       setError("Failed to load crops. Please try again.");
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
@@ -46,11 +64,13 @@ export default function Crops() {
       <div className="min-h-screen bg-green-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-lg text-gray-600">Loading crops...</p>
+          <p className="mt-4 text-lg text-gray-600">Loading farm crops...</p>
         </div>
       </div>
     );
   }
+
+  const farmName = farm?.FARM_NAME || farm?.farm_name || 'Farm';
 
   return (
     <div className="min-h-screen bg-green-50">
@@ -59,8 +79,8 @@ export default function Crops() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold">🌾 Crop Management</h1>
-              <p className="text-lg mt-1 opacity-90">View and manage all crops across your farms</p>
+              <h1 className="text-3xl font-bold">🌾 {farmName} - Crops</h1>
+              <p className="text-lg mt-1 opacity-90">View and manage crops on this farm</p>
             </div>
             <div className="flex items-center space-x-4">
               <button
@@ -89,9 +109,9 @@ export default function Crops() {
       <div className="max-w-7xl mx-auto py-8 px-4">
         <div className="bg-white p-6 rounded-2xl shadow-lg">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">All Crops</h2>
+            <h2 className="text-2xl font-bold text-gray-800">Crops on {farmName}</h2>
             <button
-              onClick={fetchCrops}
+              onClick={fetchFarmAndCrops}
               className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +130,7 @@ export default function Crops() {
           {crops.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">🌾</div>
-              <p className="text-xl text-gray-600 mb-2">No crops planted yet</p>
+              <p className="text-xl text-gray-600 mb-2">No crops planted on this farm yet</p>
               <p className="text-gray-500 mb-6">Start by planting your first crop!</p>
               <button
                 onClick={() => navigate("/add-crop")}
@@ -127,7 +147,6 @@ export default function Crops() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Crop Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Farm</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Variety</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Sowing Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Expected Harvest</th>
@@ -141,7 +160,6 @@ export default function Crops() {
                     {crops.map((crop, index) => {
                       const cropId = crop.CROP_ID || crop.crop_id || crop[0];
                       const cropName = crop.CROP_NAME || crop.crop_name || crop[2];
-                      const farmName = crop.FARM_NAME || crop.farm_name || crop[11];
                       const variety = crop.VARIETY || crop.variety || crop[3];
                       const sowingDate = crop.SOWING_DATE || crop.sowing_date || crop[4];
                       const expectedHarvest = crop.EXPECTED_HARVEST_DATE || crop.expected_harvest_date || crop[5];
@@ -156,11 +174,6 @@ export default function Crops() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                             {cropName}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {farmName}
-                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {variety || 'N/A'}
@@ -200,7 +213,7 @@ export default function Crops() {
                 </table>
               </div>
               <div className="mt-4 text-sm text-gray-600">
-                Total Crops: <span className="font-semibold">{crops.length}</span>
+                Total Crops on this farm: <span className="font-semibold">{crops.length}</span>
               </div>
             </>
           )}

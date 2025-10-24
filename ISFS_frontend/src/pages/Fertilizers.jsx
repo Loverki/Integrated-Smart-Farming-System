@@ -16,7 +16,10 @@ export default function Fertilizers() {
     try {
       setLoading(true);
       const res = await axios.get("/fertilizers");
-      setFertilizers(res.data);
+      console.log("Fertilizers received:", res.data);
+      // Ensure we have an array and filter out any invalid entries
+      const validFertilizers = Array.isArray(res.data) ? res.data.filter(f => f && (f.FERTILIZER_ID || f.fertilizer_id || f[0])) : [];
+      setFertilizers(validFertilizers);
       setError("");
     } catch (err) {
       console.error("Error fetching fertilizers:", err);
@@ -43,15 +46,21 @@ export default function Fertilizers() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => navigate("/add-fertilizers")}
-                className="bg-white text-green-700 px-6 py-2 rounded-lg font-semibold hover:bg-green-50 transition-colors shadow-md"
+                className="group bg-green-800 hover:bg-green-900 text-white px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 border-2 border-green-700 hover:border-green-600"
               >
-                ➕ Add Fertilizer
+                <svg className="w-5 h-5 transition-transform group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Fertilizer
               </button>
               <button
                 onClick={() => navigate("/dashboard")}
-                className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-colors"
+                className="group bg-green-800 hover:bg-green-900 px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 border-2 border-green-700 hover:border-green-600"
               >
-                ← Back to Dashboard
+                <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Dashboard
               </button>
             </div>
           </div>
@@ -105,12 +114,13 @@ export default function Fertilizers() {
                     <th className="p-3 border">Total Cost</th>
                     <th className="p-3 border">Applied Date</th>
                     <th className="p-3 border">Effectiveness</th>
+                    <th className="p-3 border">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {fertilizers.map((fert, index) => {
                     // Handle both object and array formats
-                    const id = fert[0] || fert.FERTILIZER_ID || fert.fertilizer_id;
+                    const id = fert.FERTILIZER_ID || fert.fertilizer_id || fert[0];
                     const farmName = fert.FARM_NAME || fert.farm_name || fert[1];
                     const name = fert.FERTILIZER_NAME || fert.fertilizer_name || fert[2];
                     const type = fert.FERTILIZER_TYPE || fert.fertilizer_type || fert[3];
@@ -121,7 +131,7 @@ export default function Fertilizers() {
                     const rating = fert.EFFECTIVENESS_RATING || fert.effectiveness_rating || fert[8];
 
                     return (
-                      <tr key={index} className="hover:bg-green-50 transition-colors">
+                      <tr key={`fertilizer-${id}-${index}`} className="hover:bg-green-50 transition-colors">
                         <td className="p-3 border font-mono text-sm">{id}</td>
                         <td className="p-3 border">{farmName ||'-'}</td>
                         <td className="p-3 border font-semibold">{name}</td>
@@ -143,6 +153,18 @@ export default function Fertilizers() {
                         </td>
                         <td className="p-3 border text-center">
                           {rating ? '⭐'.repeat(parseInt(rating)) : '-'}
+                        </td>
+                        <td className="p-3 border">
+                          <button
+                            onClick={() => alert('Fertilizer records are historical and cannot be edited. You can add a new application instead.')}
+                            className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500 transition-colors text-sm font-semibold flex items-center gap-1 cursor-not-allowed"
+                            title="Fertilizer applications are historical records"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Locked
+                          </button>
                         </td>
                       </tr>
                     );

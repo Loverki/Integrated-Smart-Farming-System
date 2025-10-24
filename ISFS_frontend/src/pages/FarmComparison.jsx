@@ -21,7 +21,8 @@ export default function FarmComparison() {
     const startTime = Date.now();
     
     setQueries([{
-      query: "Fetching farm performance data...",
+      type: "Farm Performance Comparison Query",
+      sql: "Fetching farm performance data...",
       status: "executing",
       description: "Comparing all farms with performance metrics"
     }]);
@@ -34,7 +35,8 @@ export default function FarmComparison() {
       const endTime = Date.now();
 
       setQueries([{
-        query: `SELECT 
+        type: "Farm Performance Comparison Query",
+        sql: `SELECT 
   fm.farm_id,
   fm.farm_name,
   fm.area,
@@ -66,9 +68,8 @@ WHERE fm.farmer_id = :farmer_id
 GROUP BY fm.farm_id, fm.farm_name, fm.area, fm.soil_type
 ORDER BY profit DESC`,
         status: "success",
-        description: "Farm Performance Comparison Query",
-        result: `Retrieved ${response.data.length} farms with complete performance metrics`,
-        executionTime: endTime - startTime
+        description: `Retrieved ${response.data.length} farms with complete performance metrics`,
+        time: endTime - startTime
       }]);
 
       setFarms(response.data);
@@ -76,7 +77,8 @@ ORDER BY profit DESC`,
       console.error("Error fetching farm comparison:", err);
       setError("Failed to load farm comparison data");
       setQueries([{ 
-        query: "SELECT ...", 
+        type: "Farm Performance Comparison Query",
+        sql: "SELECT ... (query failed)", 
         status: "error",
         description: "Failed to fetch farm data"
       }]);
@@ -139,10 +141,10 @@ ORDER BY profit DESC`,
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate("/dashboard")}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                className="group bg-indigo-800 hover:bg-indigo-900 p-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 border-2 border-indigo-700 hover:border-indigo-600"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <svg className="w-6 h-6 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               <div>
@@ -152,12 +154,23 @@ ORDER BY profit DESC`,
             </div>
             <button
               onClick={() => setShowSQL(!showSQL)}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              className={`relative px-5 py-2.5 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-md ${
+                showSQL 
+                  ? 'bg-gray-900 text-green-400 hover:bg-gray-800 border-2 border-green-400' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300'
+              }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
               </svg>
-              {showSQL ? 'Hide' : 'Show'} SQL Query
+              <span className="font-mono text-sm">
+                {showSQL ? 'Hide' : 'Show'} SQL
+              </span>
+              <span className={`ml-1 px-2 py-0.5 rounded text-xs font-bold ${
+                showSQL ? 'bg-green-400 text-gray-900' : 'bg-blue-500 text-white'
+              }`}>
+                QUERY
+              </span>
             </button>
           </div>
         </div>
@@ -175,7 +188,7 @@ ORDER BY profit DESC`,
           <div className="mb-8">
             <SQLQueryVisualizer 
               queries={queries}
-              executionTime={queries[0]?.executionTime}
+              executionTime={queries[0]?.time}
             />
           </div>
         )}

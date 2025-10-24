@@ -18,8 +18,9 @@ router.get("/", async (req, res) => {
         name,
         phone,
         email,
-        skill,
+        skill as role,
         hourly_rate,
+        (hourly_rate * 8) as daily_wage,
         address,
         hire_date,
         status

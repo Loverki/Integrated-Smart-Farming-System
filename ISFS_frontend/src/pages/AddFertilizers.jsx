@@ -6,6 +6,7 @@ export default function AddFertilizers() {
   const navigate = useNavigate();
   const [farms, setFarms] = useState([]);
   const [crops, setCrops] = useState([]);
+  const [labours, setLabours] = useState([]);
   const [form, setForm] = useState({
     farm_id: "",
     fertilizer_name: "",
@@ -61,6 +62,18 @@ export default function AddFertilizers() {
       }
     };
     fetchCrops();
+  }, []);
+
+  useEffect(() => {
+    const fetchLabours = async () => {
+      try {
+        const response = await axios.get("/labours");
+        setLabours(response.data);
+      } catch (err) {
+        console.error("Error fetching labours:", err);
+      }
+    };
+    fetchLabours();
   }, []);
 
   const handleChange = (e) => {
@@ -414,17 +427,32 @@ export default function AddFertilizers() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Applied By
+                    Applied By (Labour Worker)
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="applied_by"
-                    placeholder="Enter name of person who applied"
                     value={form.applied_by}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors bg-white"
                     disabled={loading}
-                  />
+                  >
+                    <option value="">Select Labour Worker (Optional)</option>
+                    {labours.map((labour, index) => {
+                      const labourId = labour.LABOUR_ID || labour.labour_id || labour[0];
+                      const labourName = labour.NAME || labour.name || labour[1];
+                      const labourRole = labour.ROLE || labour.role || labour[2];
+                      return (
+                        <option key={`labour-${labourId}-${index}`} value={labourName}>
+                          {labourName} {labourRole ? `- ${labourRole}` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {form.applied_by 
+                      ? `Selected: ${form.applied_by}` 
+                      : 'Select the labour worker who applied this fertilizer'}
+                  </p>
                 </div>
 
                 <div>

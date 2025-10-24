@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 export default function AddSale() {
   const navigate = useNavigate();
   const [farms, setFarms] = useState([]);
-  const [crops, setCrops] = useState([]);
+  const [allCrops, setAllCrops] = useState([]); // Store all crops
+  const [filteredCrops, setFilteredCrops] = useState([]); // Crops for selected farm
   const [form, setForm] = useState({
     farm_id: "",
     crop_id: "",
@@ -56,18 +57,7 @@ export default function AddSale() {
     const fetchCrops = async () => {
       try {
         const response = await axios.get("/crops");
-        setCrops(response.data);
-        
-        if (response.data && response.data.length > 0) {
-          const firstCrop = response.data[0];
-          const cropId = firstCrop.CROP_ID || firstCrop.crop_id;
-          if (cropId) {
-            setForm(prevForm => ({
-              ...prevForm,
-              crop_id: cropId.toString()
-            }));
-          }
-        }
+        setAllCrops(response.data);
       } catch (err) {
         console.error("Error fetching crops:", err);
       }
@@ -75,13 +65,59 @@ export default function AddSale() {
     fetchCrops();
   }, []);
 
+  // Filter crops based on selected farm
+  useEffect(() => {
+    if (form.farm_id && allCrops.length > 0) {
+      const farmIdNum = parseInt(form.farm_id);
+      const cropsForFarm = allCrops.filter(crop => {
+        const cropFarmId = crop.FARM_ID || crop.farm_id || crop[1];
+        return parseInt(cropFarmId) === farmIdNum;
+      });
+      
+      setFilteredCrops(cropsForFarm);
+      
+      // Reset crop selection if current crop doesn't belong to selected farm
+      if (form.crop_id) {
+        const currentCropValid = cropsForFarm.some(crop => {
+          const cropId = crop.CROP_ID || crop.crop_id || crop[0];
+          return cropId && cropId.toString() === form.crop_id;
+        });
+        
+        if (!currentCropValid) {
+          setForm(prevForm => ({
+            ...prevForm,
+            crop_id: ""
+          }));
+        }
+      }
+      
+      // Auto-select first crop if only one available
+      if (cropsForFarm.length === 1 && !form.crop_id) {
+        const firstCrop = cropsForFarm[0];
+        const cropId = firstCrop.CROP_ID || firstCrop.crop_id || firstCrop[0];
+        if (cropId) {
+          setForm(prevForm => ({
+            ...prevForm,
+            crop_id: cropId.toString()
+          }));
+        }
+      }
+    } else {
+      setFilteredCrops([]);
+    }
+  }, [form.farm_id, allCrops]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     const updatedForm = { ...form, [name]: value };
     
-    if (name === 'quantity_sold' || name === 'price_per_unit') {
+    // Recalculate total amount when quantity, price, or unit changes
+    if (name === 'quantity_sold' || name === 'price_per_unit' || name === 'unit') {
       const quantity = name === 'quantity_sold' ? parseFloat(value) || 0 : parseFloat(form.quantity_sold) || 0;
       const price = name === 'price_per_unit' ? parseFloat(value) || 0 : parseFloat(form.price_per_unit) || 0;
+      
+      // Calculate total amount (quantity × price per unit)
+      // Note: Different units (KG, TONS, QUINTALS, BAGS) should have their own price_per_unit
       updatedForm.total_amount = (quantity * price).toFixed(2);
     }
     
@@ -337,19 +373,33 @@ export default function AddSale() {
                     onChange={handleChange}
                     className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
                     required
-                    disabled={loading}
+                    disabled={loading || !form.farm_id || filteredCrops.length === 0}
                   >
-                    <option key="empty" value="">Select Crop</option>
-                    {crops.map((c) => {
-                      const cropId = c.CROP_ID || c.crop_id;
-                      const cropName = c.CROP_NAME || c.crop_name;
+                    <option key="empty" value="">
+                      {!form.farm_id 
+                        ? 'Select a farm first' 
+                        : filteredCrops.length === 0 
+                        ? 'No crops available for this farm' 
+                        : 'Select Crop'}
+                    </option>
+                    {filteredCrops.map((c, index) => {
+                      const cropId = c.CROP_ID || c.crop_id || c[0];
+                      const cropName = c.CROP_NAME || c.crop_name || c[2];
+                      const cropType = c.CROP_TYPE || c.crop_type || c[3];
                       return (
-                        <option key={cropId} value={cropId}>
-                          {cropName}
+                        <option key={`${cropId}-${index}`} value={cropId}>
+                          {cropName} ({cropType})
                         </option>
                       );
                     })}
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {form.farm_id && filteredCrops.length > 0 
+                      ? `${filteredCrops.length} crop${filteredCrops.length !== 1 ? 's' : ''} available in selected farm`
+                      : !form.farm_id
+                      ? 'Please select a farm first'
+                      : 'No crops planted in this farm yet'}
+                  </p>
                 </div>
 
                 <div>
@@ -405,7 +455,7 @@ export default function AddSale() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Unit
+                    Unit *
                   </label>
                   <select
                     name="unit"
@@ -419,23 +469,30 @@ export default function AddSale() {
                     <option key="quintals" value="QUINTALS">Quintals</option>
                     <option key="bags" value="BAGS">Bags</option>
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {form.unit === 'KG' && '1 KG = 1 Kilogram'}
+                    {form.unit === 'TONS' && '1 TON = 1000 Kilograms'}
+                    {form.unit === 'QUINTALS' && '1 QUINTAL = 100 Kilograms'}
+                    {form.unit === 'BAGS' && 'Weight per bag varies by crop'}
+                  </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Price Per Unit (₹) *
+                    Price Per {form.unit === 'KG' ? 'Kilogram' : form.unit === 'TONS' ? 'Ton' : form.unit === 'QUINTALS' ? 'Quintal' : 'Bag'} (₹) *
                   </label>
                   <input
                     type="number"
                     step="0.01"
                     name="price_per_unit"
-                    placeholder="Enter price per unit"
+                    placeholder={`Enter price per ${form.unit.toLowerCase()}`}
                     value={form.price_per_unit}
                     onChange={handleChange}
                     className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors"
                     required
                     disabled={loading}
                   />
+                  <p className="text-xs text-gray-500 mt-1">Price for one {form.unit.toLowerCase()}</p>
                 </div>
 
                 <div>
@@ -449,10 +506,14 @@ export default function AddSale() {
                     placeholder="Auto-calculated"
                     value={form.total_amount}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors bg-gray-50"
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-colors bg-emerald-50 font-semibold text-emerald-700"
                     readOnly
                   />
-                  <p className="text-xs text-gray-500 mt-1">Auto-calculated from quantity × price</p>
+                  <p className="text-xs text-emerald-600 mt-1 font-medium">
+                    {form.quantity_sold && form.price_per_unit 
+                      ? `${form.quantity_sold} ${form.unit} × ₹${form.price_per_unit} = ₹${form.total_amount}`
+                      : 'Auto-calculated: Quantity × Price per unit'}
+                  </p>
                 </div>
 
                 <div>

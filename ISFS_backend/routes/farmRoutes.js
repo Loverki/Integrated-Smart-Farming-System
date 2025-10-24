@@ -16,6 +16,7 @@ router.get("/", async (req, res) => {
     connection = await getConnection();
     
     // Get farms for the specific farmer with additional details
+    // Fixed query to avoid Cartesian product when joining crops and sales
     const result = await connection.execute(
       `
       SELECT 
@@ -29,13 +30,20 @@ router.get("/", async (req, res) => {
         f.farm_type,
         f.created_date,
         f.status,
-        COUNT(c.crop_id) as crop_count,
-        NVL(SUM(s.total_amount), 0) as total_revenue
+        NVL(crop_data.crop_count, 0) as crop_count,
+        NVL(sales_data.total_revenue, 0) as total_revenue
       FROM FARM f
-      LEFT JOIN CROP c ON f.farm_id = c.farm_id
-      LEFT JOIN SALES s ON f.farm_id = s.farm_id
-      WHERE f.farmer_id = :farmer_id
-      GROUP BY f.farm_id, f.farm_name, f.location, f.area, f.soil_type, f.soil_ph, f.irrigation_type, f.farm_type, f.created_date, f.status
+      LEFT JOIN (
+        SELECT farm_id, COUNT(crop_id) as crop_count
+        FROM CROP
+        GROUP BY farm_id
+      ) crop_data ON f.farm_id = crop_data.farm_id
+      LEFT JOIN (
+        SELECT farm_id, SUM(total_amount) as total_revenue
+        FROM SALES
+        GROUP BY farm_id
+      ) sales_data ON f.farm_id = sales_data.farm_id
+      WHERE f.farmer_id = :farmer_id AND f.status = 'ACTIVE'
       ORDER BY f.created_date DESC
       `,
       { farmer_id }

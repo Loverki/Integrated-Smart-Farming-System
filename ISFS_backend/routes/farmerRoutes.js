@@ -119,7 +119,7 @@ router.get("/analytics", async (req, res) => {
     // Get total farms
     const farmsResult = await connection.execute(
       `SELECT COUNT(*) AS total_farms, NVL(SUM(area), 0) AS total_area 
-       FROM FARM WHERE FARMER_ID = :farmer_id`,
+       FROM FARM WHERE FARMER_ID = :farmer_id AND status = 'ACTIVE'`,
       { farmer_id: farmerId }
     );
 
@@ -128,7 +128,7 @@ router.get("/analytics", async (req, res) => {
       `SELECT COUNT(*) AS total_crops 
        FROM CROP c 
        JOIN FARM f ON c.farm_id = f.farm_id 
-       WHERE f.farmer_id = :farmer_id`,
+       WHERE f.farmer_id = :farmer_id AND f.status = 'ACTIVE'`,
       { farmer_id: farmerId }
     );
 
@@ -137,7 +137,93 @@ router.get("/analytics", async (req, res) => {
       `SELECT NVL(SUM(s.total_amount), 0) AS total_revenue 
        FROM SALES s 
        JOIN FARM f ON s.farm_id = f.farm_id 
-       WHERE f.farmer_id = :farmer_id`,
+       WHERE f.farmer_id = :farmer_id AND f.status = 'ACTIVE'`,
+      { farmer_id: farmerId }
+    );
+
+    // Get monthly revenue for last 6 months
+    const monthlyRevenueResult = await connection.execute(
+      `SELECT 
+        TO_CHAR(s.sale_date, 'Mon') AS month_name,
+        TO_CHAR(s.sale_date, 'MM') AS month_num,
+        NVL(SUM(s.total_amount), 0) AS revenue
+       FROM SALES s
+       JOIN FARM f ON s.farm_id = f.farm_id
+       WHERE f.farmer_id = :farmer_id 
+         AND f.status = 'ACTIVE'
+         AND s.sale_date >= ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -5)
+       GROUP BY TO_CHAR(s.sale_date, 'Mon'), TO_CHAR(s.sale_date, 'MM'), TO_CHAR(s.sale_date, 'YYYY-MM')
+       ORDER BY TO_CHAR(s.sale_date, 'YYYY-MM')`,
+      { farmer_id: farmerId }
+    );
+
+    // Get crop performance data (by crop name with yield efficiency)
+    const cropPerformanceResult = await connection.execute(
+      `SELECT 
+        c.crop_name,
+        COUNT(*) AS crop_count,
+        NVL(AVG(c.expected_yield), 0) AS avg_expected_yield,
+        NVL(AVG(c.actual_yield), 0) AS avg_actual_yield,
+        CASE 
+          WHEN NVL(AVG(c.expected_yield), 0) > 0 
+          THEN ROUND((NVL(AVG(c.actual_yield), 0) / NVL(AVG(c.expected_yield), 1)) * 100, 0)
+          ELSE 0
+        END AS performance_percentage
+       FROM CROP c
+       JOIN FARM f ON c.farm_id = f.farm_id
+       WHERE f.farmer_id = :farmer_id AND f.status = 'ACTIVE'
+       GROUP BY c.crop_name
+       ORDER BY crop_count DESC
+       FETCH FIRST 4 ROWS ONLY`,
+      { farmer_id: farmerId }
+    );
+
+    // Get recent activities - combine crops, sales, and fertilizers
+    const recentActivitiesResult = await connection.execute(
+      `SELECT * FROM (
+        -- Recent crop plantings
+        SELECT 
+          'crop' AS activity_type,
+          c.crop_id AS item_id,
+          c.crop_name AS item_name,
+          f.farm_name AS farm_name,
+          c.sowing_date AS activity_date,
+          c.variety AS details
+        FROM CROP c
+        JOIN FARM f ON c.farm_id = f.farm_id
+        WHERE f.farmer_id = :farmer_id AND f.status = 'ACTIVE'
+        
+        UNION ALL
+        
+        -- Recent sales
+        SELECT 
+          'sale' AS activity_type,
+          s.sale_id AS item_id,
+          cr.crop_name AS item_name,
+          s.buyer_name AS farm_name,
+          s.sale_date AS activity_date,
+          TO_CHAR(s.quantity_sold) || ' ' || s.unit || ' for ₹' || TO_CHAR(s.total_amount) AS details
+        FROM SALES s
+        JOIN FARM f ON s.farm_id = f.farm_id
+        LEFT JOIN CROP cr ON s.crop_id = cr.crop_id
+        WHERE f.farmer_id = :farmer_id AND f.status = 'ACTIVE'
+        
+        UNION ALL
+        
+        -- Recent fertilizer applications
+        SELECT 
+          'fertilizer' AS activity_type,
+          fer.fertilizer_id AS item_id,
+          fer.fertilizer_name AS item_name,
+          fa.farm_name AS farm_name,
+          fer.applied_date AS activity_date,
+          TO_CHAR(fer.quantity_used) || ' ' || fer.unit || ' applied' AS details
+        FROM FERTILIZER fer
+        JOIN FARM fa ON fer.farm_id = fa.farm_id
+        WHERE fa.farmer_id = :farmer_id AND fa.status = 'ACTIVE'
+      )
+      ORDER BY activity_date DESC
+      FETCH FIRST 10 ROWS ONLY`,
       { farmer_id: farmerId }
     );
 
@@ -145,7 +231,10 @@ router.get("/analytics", async (req, res) => {
       total_farms: farmsResult.rows[0].TOTAL_FARMS || 0,
       total_area: farmsResult.rows[0].TOTAL_AREA || 0,
       total_crops: cropsResult.rows[0].TOTAL_CROPS || 0,
-      total_revenue: revenueResult.rows[0].TOTAL_REVENUE || 0
+      total_revenue: revenueResult.rows[0].TOTAL_REVENUE || 0,
+      monthly_revenue: monthlyRevenueResult.rows || [],
+      crop_performance: cropPerformanceResult.rows || [],
+      recent_activities: recentActivitiesResult.rows || []
     });
   } catch (err) {
     console.error("Analytics error:", err);

@@ -130,7 +130,24 @@ router.get("/farm-comparison", async (req, res) => {
       { farmer_id }
     );
 
-    res.json(result.rows || []);
+    // Transform Oracle's uppercase column names to lowercase for frontend
+    const farms = result.rows.map(row => ({
+      farm_id: row.FARM_ID,
+      farm_name: row.FARM_NAME,
+      area: parseFloat(row.AREA) || 0,
+      soil_type: row.SOIL_TYPE,
+      total_crops: parseInt(row.TOTAL_CROPS) || 0,
+      expected_yield: parseFloat(row.EXPECTED_YIELD) || 0,
+      actual_yield: parseFloat(row.ACTUAL_YIELD) || 0,
+      yield_efficiency: parseFloat(row.YIELD_EFFICIENCY) || 0,
+      revenue: parseFloat(row.REVENUE) || 0,
+      fertilizer_cost: parseFloat(row.FERTILIZER_COST) || 0,
+      labour_cost: parseFloat(row.LABOUR_COST) || 0,
+      profit: parseFloat(row.PROFIT) || 0,
+      revenue_per_acre: parseFloat(row.REVENUE_PER_ACRE) || 0
+    }));
+
+    res.json(farms);
 
   } catch (err) {
     console.error("Error fetching farm comparison:", err);

@@ -266,12 +266,29 @@ export default function Dashboard() {
     fetchFarmerStats();
   }, [navigate]);
 
+  // Handle token expiration/invalid token errors
+  const handleAuthError = () => {
+    console.log("Auth error detected - clearing local storage and redirecting to login");
+    localStorage.removeItem("token");
+    localStorage.removeItem("farmerId");
+    localStorage.removeItem("farmerName");
+    alert("Your session has expired or is invalid. Please log in again.");
+    navigate("/login");
+  };
+
   const fetchFarmerStats = async () => {
     try {
       const response = await axios.get("/farmers/dashboard-stats");
       setFarmerStats(response.data);
     } catch (err) {
       console.error("Error fetching farmer stats:", err);
+      
+      // Check if it's an authentication error
+      if (err.response && err.response.status === 401) {
+        handleAuthError();
+        return;
+      }
+      
       setError("Failed to load dashboard data");
     } finally {
       setLoading(false);

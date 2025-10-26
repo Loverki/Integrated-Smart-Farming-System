@@ -5,7 +5,13 @@ const router = express.Router();
 
 // Middleware check to safely read farmer_id
 function safeFarmerId(req) {
-  return req.farmer?.farmer_id || null;
+  const farmerId = req.farmer?.farmer_id || null;
+  console.log('safeFarmerId check:', { 
+    hasFarmer: !!req.farmer, 
+    farmer: req.farmer, 
+    farmerId 
+  });
+  return farmerId;
 }
 
 // GET all farmers
@@ -48,8 +54,15 @@ router.post("/", async (req, res) => {
 
 // Example: GET dashboard stats
 router.get("/dashboard-stats", async (req, res) => {
+  console.log('Dashboard stats endpoint hit');
+  console.log('Request headers:', req.headers.authorization ? 'Token present' : 'No token');
+  console.log('req.farmer:', req.farmer);
+  
   const farmerId = safeFarmerId(req);
-  if (!farmerId) return res.status(401).json({ message: "Unauthorized" });
+  if (!farmerId) {
+    console.error('Farmer ID not found in request');
+    return res.status(401).json({ message: "Unauthorized - No farmer ID" });
+  }
 
   let connection;
   try {

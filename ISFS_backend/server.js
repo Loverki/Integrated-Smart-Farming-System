@@ -50,9 +50,13 @@ const startServer = async () => {
     const { default: functionsRoutes } = await import("./routes/functionsRoutes.js");
     const { default: analyticsRoutes } = await import("./routes/analyticsRoutes.js");
     const { protect } = await import("./middleware/authMiddleware.js");
+    const { protectAdmin, requireRole } = await import("./middleware/adminAuthMiddleware.js");
 
-    // Setup routes
+    // Setup routes - Admin routes with specific protection
     app.use("/api/auth", authRoutes);
+    
+    // Admin login and create are handled separately in adminRoutes (login doesn't need protection)
+    // Other admin routes need authentication
     app.use("/api/admin", adminRoutes);
 
     app.use("/api/farmers", protect, farmerRoutes);

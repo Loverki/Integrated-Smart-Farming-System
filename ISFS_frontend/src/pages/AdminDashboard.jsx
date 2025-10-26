@@ -8,42 +8,33 @@ const adminFeatures = [
     description: "Manage farmers, view registrations, and monitor farmer activities.",
     icon: "👨‍🌾",
     route: "/admin/farmers",
-    color: "bg-green-500"
+    color: "bg-green-500",
+    implemented: true
   },
   {
     name: "System Analytics",
     description: "View system-wide analytics, performance metrics, and trends.",
     icon: "📊",
     route: "/admin/analytics",
-    color: "bg-blue-500"
+    color: "bg-blue-500",
+    implemented: true
   },
   {
     name: "Database Management",
     description: "Execute complex queries, manage views, and monitor database performance.",
     icon: "🗄️",
     route: "/admin/database",
-    color: "bg-purple-500"
-  },
-  {
-    name: "Reports & Insights",
-    description: "Generate comprehensive reports and business insights.",
-    icon: "📈",
-    route: "/admin/reports",
-    color: "bg-yellow-500"
-  },
-  {
-    name: "System Monitoring",
-    description: "Monitor system health, user activities, and performance metrics.",
-    icon: "⚡",
-    route: "/admin/monitoring",
-    color: "bg-red-500"
+    color: "bg-purple-500",
+    implemented: true
   },
   {
     name: "User Management",
-    description: "Manage admin users, roles, and permissions.",
+    description: "Manage admin users, roles, and permissions (SUPER_ADMIN only).",
     icon: "👥",
     route: "/admin/users",
-    color: "bg-indigo-500"
+    color: "bg-indigo-500",
+    implemented: true,
+    requiresSuperAdmin: true
   }
 ];
 
@@ -231,31 +222,43 @@ export default function AdminDashboard() {
         {/* Admin Features */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Administrative Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {adminFeatures.map((feature) => (
-              <div
-                key={feature.name}
-                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
-              >
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <div className={`w-12 h-12 ${feature.color} rounded-lg flex items-center justify-center text-white text-2xl`}>
-                      {feature.icon}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {adminFeatures.map((feature) => {
+              // Hide SUPER_ADMIN only features for non-super admins
+              if (feature.requiresSuperAdmin && adminRole !== 'SUPER_ADMIN') {
+                return null;
+              }
+              
+              return (
+                <div
+                  key={feature.name}
+                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center mb-4">
+                      <div className={`w-12 h-12 ${feature.color} rounded-lg flex items-center justify-center text-white text-2xl`}>
+                        {feature.icon}
+                      </div>
+                      <div className="ml-4">
+                        <h3 className="text-lg font-semibold text-gray-900">{feature.name}</h3>
+                      </div>
                     </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-semibold text-gray-900">{feature.name}</h3>
-                    </div>
+                    <p className="text-gray-600 text-sm mb-4">{feature.description}</p>
+                    <button
+                      onClick={() => navigate(feature.route)}
+                      className={`w-full ${feature.color} text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2`}
+                    >
+                      <span>Access {feature.name}</span>
+                      {feature.implemented && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
-                  <p className="text-gray-600 text-sm mb-4">{feature.description}</p>
-                  <button
-                    onClick={() => navigate(feature.route)}
-                    className={`w-full ${feature.color} text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity`}
-                  >
-                    Access {feature.name}
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

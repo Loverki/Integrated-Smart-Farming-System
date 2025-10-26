@@ -31,6 +31,11 @@ import FarmComparison from "./pages/FarmComparison";
 import EditFarm from "./pages/EditFarm";
 import FarmCrops from "./pages/FarmCrops";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import FarmerManagement from "./pages/admin/FarmerManagement";
+import SystemAnalytics from "./pages/admin/SystemAnalytics";
+import DatabaseQueryTool from "./pages/admin/DatabaseQueryTool";
+import AdminUserManagement from "./pages/admin/AdminUserManagement";
 
 function App() {
   return (
@@ -54,9 +59,43 @@ function App() {
         <Route
           path="/admin-dashboard"
           element={
-            <ProtectedRoute>
+            <AdminProtectedRoute>
               <AdminDashboard />
-            </ProtectedRoute>
+            </AdminProtectedRoute>
+          }
+        />
+
+        {/* Admin Management Routes */}
+        <Route
+          path="/admin/farmers"
+          element={
+            <AdminProtectedRoute>
+              <FarmerManagement />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/analytics"
+          element={
+            <AdminProtectedRoute>
+              <SystemAnalytics />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/database"
+          element={
+            <AdminProtectedRoute>
+              <DatabaseQueryTool />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminProtectedRoute requiredRole="SUPER_ADMIN">
+              <AdminUserManagement />
+            </AdminProtectedRoute>
           }
         />
         <Route

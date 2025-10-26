@@ -32,7 +32,7 @@ export const loginFarmer = async (req, res) => {
   try {
     const connection = await getConnection();
     const result = await connection.execute(
-      `SELECT FARMER_ID, NAME, PASSWORD FROM FARMER WHERE PHONE = :phone`,
+      `SELECT FARMER_ID, NAME, PASSWORD, STATUS FROM FARMER WHERE PHONE = :phone`,
       { phone }
     );
 
@@ -40,6 +40,11 @@ export const loginFarmer = async (req, res) => {
     await connection.close();
 
     if (!farmer) return res.status(404).json({ message: "Farmer not found" });
+
+    // Check if farmer account is active
+    if (farmer.STATUS === 'INACTIVE') {
+      return res.status(403).json({ message: "Admin has deactivated your account. Please contact support." });
+    }
 
     const match = await bcrypt.compare(password, farmer.PASSWORD);
     if (!match) return res.status(401).json({ message: "Invalid credentials" });

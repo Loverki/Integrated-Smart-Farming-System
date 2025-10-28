@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "../api/axios";
+import api from "../api/axios";
 
 const featureCards = [
   {
@@ -253,6 +254,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showSQLModal, setShowSQLModal] = useState(false);
+  const [weatherAlerts, setWeatherAlerts] = useState([]);
+  const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
 
   // Check if logged in and fetch farmer statistics
   useEffect(() => {
@@ -264,6 +267,7 @@ export default function Dashboard() {
     }
 
     fetchFarmerStats();
+    fetchWeatherAlerts();
   }, [navigate]);
 
   // Handle token expiration/invalid token errors
@@ -292,6 +296,17 @@ export default function Dashboard() {
       setError("Failed to load dashboard data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWeatherAlerts = async () => {
+    try {
+      const response = await api.get('/weather/alerts?limit=5');
+      setWeatherAlerts(response.data);
+      const unreadCount = response.data.filter(alert => !alert.isRead).length;
+      setUnreadAlertsCount(unreadCount);
+    } catch (err) {
+      console.debug('Weather alerts not available');
     }
   };
 
@@ -415,6 +430,57 @@ export default function Dashboard() {
                 subtitle={farmerStats.avg_actual_yield > 0 ? "Actual harvested yield" : "Expected yield"}
               />
             </div>
+
+            {/* Weather Alerts Widget */}
+            {weatherAlerts.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    🌤️ Recent Weather Alerts
+                    {unreadAlertsCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                        {unreadAlertsCount} new
+                      </span>
+                    )}
+                  </h3>
+                  <button
+                    onClick={() => navigate('/weather')}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    View All →
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {weatherAlerts.slice(0, 3).map(alert => (
+                    <div
+                      key={alert.alertId}
+                      className={`p-3 rounded-lg border-l-4 ${
+                        alert.severity === 'CRITICAL' ? 'bg-red-50 border-red-500' :
+                        alert.severity === 'WARNING' ? 'bg-yellow-50 border-yellow-500' :
+                        'bg-blue-50 border-blue-500'
+                      } ${!alert.isRead ? 'ring-2 ring-offset-2 ring-blue-300' : ''}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm">
+                              {alert.alertType.replace(/_/g, ' ')}
+                            </span>
+                            {!alert.isRead && (
+                              <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded">NEW</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-700 mt-1">{alert.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(alert.createdDate).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -437,6 +503,14 @@ export default function Dashboard() {
               <div className="text-2xl mb-2">🌱</div>
               <div className="font-semibold">Add New Crop</div>
               <div className="text-sm opacity-90">Record crop planting</div>
+            </button>
+            <button
+              onClick={() => navigate("/weather")}
+              className="bg-gradient-to-r from-sky-400 to-sky-500 text-white p-4 rounded-lg hover:from-sky-500 hover:to-sky-600 transition-all transform hover:scale-105"
+            >
+              <div className="text-2xl mb-2">🌤️</div>
+              <div className="font-semibold">Weather Dashboard</div>
+              <div className="text-sm opacity-90">View weather & alerts</div>
             </button>
             <button
               onClick={() => navigate("/add-sales")}

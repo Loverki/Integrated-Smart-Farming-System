@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import AddFarmer from "./pages/AddFarmer";
 import Farmers from "./pages/Farmers";
 import AddCrop from "./pages/AddCrop";
+import EditCrop from "./pages/EditCrop";
 import Crops from "./pages/Crops";
 import CropsOverview from "./pages/CropsOverview";
 import AddLabours from "./pages/AddLabours";
@@ -36,6 +37,9 @@ import FarmerManagement from "./pages/admin/FarmerManagement";
 import SystemAnalytics from "./pages/admin/SystemAnalytics";
 import DatabaseQueryTool from "./pages/admin/DatabaseQueryTool";
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
+import WeatherDashboard from "./pages/WeatherDashboard";
+import AlertPreferences from "./pages/AlertPreferences";
+import AlertManagement from "./pages/admin/AlertManagement";
 
 function App() {
   return (
@@ -99,6 +103,33 @@ function App() {
           }
         />
         <Route
+          path="/admin/alerts"
+          element={
+            <AdminProtectedRoute>
+              <AlertManagement />
+            </AdminProtectedRoute>
+          }
+        />
+
+        {/* Weather Alert Routes */}
+        <Route
+          path="/weather"
+          element={
+            <ProtectedRoute>
+              <WeatherDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/alert-preferences"
+          element={
+            <ProtectedRoute>
+              <AlertPreferences />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/farmers"
           element={
             <ProtectedRoute>
@@ -139,26 +170,10 @@ function App() {
           }
         />
         <Route
-          path="/crops/:id/edit"
+          path="/crops/:cropId/edit"
           element={
             <ProtectedRoute>
-              <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-xl p-12 text-center max-w-md border-2 border-green-200">
-                  <div className="text-8xl mb-6">🌾</div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-4">Crop Editing</h1>
-                  <p className="text-gray-600 mb-2 text-lg">Edit functionality for crops is coming soon!</p>
-                  <p className="text-gray-500 text-sm mb-8">Crop records are being tracked. Edit features will be available in the next update.</p>
-                  <button
-                    onClick={() => window.history.back()}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 mx-auto"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Back to Crops
-                  </button>
-                </div>
-              </div>
+              <EditCrop />
             </ProtectedRoute>
           }
         />

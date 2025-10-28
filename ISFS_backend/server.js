@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import oracledb from "oracledb";
+import cron from "node-cron";
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ const startServer = async () => {
     const { default: proceduresRoutes } = await import("./routes/proceduresRoutes.js");
     const { default: functionsRoutes } = await import("./routes/functionsRoutes.js");
     const { default: analyticsRoutes } = await import("./routes/analyticsRoutes.js");
+    const { default: weatherRoutes } = await import("./routes/weatherRoutes.js");
     const { protect } = await import("./middleware/authMiddleware.js");
     const { protectAdmin, requireRole } = await import("./middleware/adminAuthMiddleware.js");
 
@@ -73,6 +75,22 @@ const startServer = async () => {
     app.use("/api/procedures", protect, proceduresRoutes);
     app.use("/api/functions", protect, functionsRoutes);
     app.use("/api/analytics", protect, analyticsRoutes);
+    
+    // Weather alert system routes (protected - requires farmer authentication)
+    app.use("/api/weather", protect, weatherRoutes);
+
+    // Setup weather alert cron job - runs every hour
+    console.log("⏰ Setting up weather alert cron job (runs every hour)...");
+    cron.schedule('0 * * * *', async () => {
+      try {
+        console.log("🌤️  Running scheduled weather check...");
+        const { checkWeatherAndSendAlerts } = await import("./services/alertService.js");
+        await checkWeatherAndSendAlerts();
+      } catch (error) {
+        console.error("❌ Weather check cron job failed:", error.message);
+      }
+    });
+    console.log("✅ Weather alert cron job scheduled");
 
     // Start server
     const PORT = process.env.PORT || 5000;

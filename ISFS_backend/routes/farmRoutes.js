@@ -49,8 +49,24 @@ router.get("/", async (req, res) => {
       { farmer_id }
     );
     
-    console.log(`✅ Retrieved ${result.rows.length} farms for farmer ${farmer_id}`);
-    res.json(result.rows || []);
+    // Transform Oracle array format to object format
+    const farms = result.rows.map(row => ({
+      farmId: row[0],
+      farmName: row[1],
+      location: row[2],
+      area: row[3],
+      soilType: row[4],
+      soilPh: row[5],
+      irrigationType: row[6],
+      farmType: row[7],
+      createdDate: row[8],
+      status: row[9],
+      cropCount: row[10],
+      totalRevenue: row[11]
+    }));
+    
+    console.log(`✅ Retrieved ${farms.length} farms for farmer ${farmer_id}`);
+    res.json(farms);
   } catch (err) {
     console.error("Get farms error:", err);
     res.status(500).json({ error: err.message });

@@ -131,6 +131,7 @@ export default function Crops() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Variety</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Sowing Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Expected Harvest</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actual Harvest</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Expected Yield</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actual Yield</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
@@ -145,8 +146,9 @@ export default function Crops() {
                       const variety = crop.VARIETY || crop.variety || crop[3];
                       const sowingDate = crop.SOWING_DATE || crop.sowing_date || crop[4];
                       const expectedHarvest = crop.EXPECTED_HARVEST_DATE || crop.expected_harvest_date || crop[5];
-                      const expectedYield = crop.EXPECTED_YIELD || crop.expected_yield || crop[6];
-                      const actualYield = crop.ACTUAL_YIELD || crop.actual_yield || crop[7];
+                      const actualHarvest = crop.ACTUAL_HARVEST_DATE || crop.actual_harvest_date || crop[6];
+                      const expectedYield = crop.EXPECTED_YIELD || crop.expected_yield || crop[7];
+                      const actualYield = crop.ACTUAL_YIELD || crop.actual_yield || crop[8];
                       const status = crop.CROP_STATUS || crop.crop_status || crop[9];
 
                       return (
@@ -170,6 +172,15 @@ export default function Crops() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {expectedHarvest ? new Date(expectedHarvest).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {actualHarvest ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {new Date(actualHarvest).toLocaleDateString()}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">Not harvested</span>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                             {expectedYield ? `${expectedYield} kg` : 'N/A'}

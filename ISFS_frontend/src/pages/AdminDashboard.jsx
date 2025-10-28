@@ -20,6 +20,14 @@ const adminFeatures = [
     implemented: true
   },
   {
+    name: "Weather Alert Management",
+    description: "Send weather alerts, broadcast messages, and view alert history.",
+    icon: "🌤️",
+    route: "/admin/alerts",
+    color: "bg-sky-500",
+    implemented: true
+  },
+  {
     name: "Database Management",
     description: "Execute complex queries, manage views, and monitor database performance.",
     icon: "🗄️",
@@ -191,7 +199,7 @@ export default function AdminDashboard() {
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
               onClick={() => navigate("/admin/analytics")}
               className="bg-gradient-to-r from-blue-400 to-blue-500 text-white p-4 rounded-lg hover:from-blue-500 hover:to-blue-600 transition-all transform hover:scale-105"
@@ -207,6 +215,14 @@ export default function AdminDashboard() {
               <div className="text-2xl mb-2">👨‍🌾</div>
               <div className="font-semibold">Manage Farmers</div>
               <div className="text-sm opacity-90">View and manage farmers</div>
+            </button>
+            <button
+              onClick={() => navigate("/admin/alerts")}
+              className="bg-gradient-to-r from-sky-400 to-sky-500 text-white p-4 rounded-lg hover:from-sky-500 hover:to-sky-600 transition-all transform hover:scale-105"
+            >
+              <div className="text-2xl mb-2">🌤️</div>
+              <div className="font-semibold">Weather Alerts</div>
+              <div className="text-sm opacity-90">Send alerts & broadcast</div>
             </button>
             <button
               onClick={() => navigate("/admin/database")}

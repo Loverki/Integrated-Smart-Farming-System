@@ -89,6 +89,31 @@ export default function AddCrop() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    
+    // Date validation
+    if (!form.sowing_date) {
+      setError("Sowing date is required");
+      return;
+    }
+    
+    const sowingDate = new Date(form.sowing_date);
+    
+    if (form.expected_harvest_date) {
+      const expectedHarvestDate = new Date(form.expected_harvest_date);
+      if (expectedHarvestDate <= sowingDate) {
+        setError("Expected harvest date must be after the sowing date");
+        return;
+      }
+    }
+    
+    if (form.actual_harvest_date) {
+      const actualHarvestDate = new Date(form.actual_harvest_date);
+      if (actualHarvestDate <= sowingDate) {
+        setError("Actual harvest date must be after the sowing date");
+        return;
+      }
+    }
+    
     setLoading(true);
     setQueries([]);
     
@@ -316,9 +341,11 @@ export default function AddCrop() {
                     name="expected_harvest_date"
                     value={form.expected_harvest_date}
                     onChange={handleChange}
+                    min={form.sowing_date}
                     className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-colors"
                     disabled={loading}
                   />
+                  <p className="text-xs text-gray-500 mt-1">Must be after sowing date</p>
                 </div>
 
                 <div>
@@ -331,6 +358,22 @@ export default function AddCrop() {
                     name="expected_yield"
                     placeholder="Enter expected yield"
                     value={form.expected_yield}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-colors"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Seed Quantity (kg)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="seed_quantity"
+                    placeholder="Enter seed quantity"
+                    value={form.seed_quantity}
                     onChange={handleChange}
                     className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-colors"
                     disabled={loading}

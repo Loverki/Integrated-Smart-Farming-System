@@ -739,4 +739,285 @@ router.delete("/users/:id", protectAdmin, requireRole(['SUPER_ADMIN']), async (r
   }
 });
 
+// Recalculate Farmer Totals (ADMIN only)
+router.post("/recalculate-farmer-totals", protectAdmin, async (req, res) => {
+  let connection;
+  
+  try {
+    connection = await getConnection();
+    
+    console.log("🔄 Admin initiated farmer totals recalculation...");
+    
+    // Execute the recalculation procedure
+    await connection.execute(`BEGIN RECALC_FARMER_TOTALS; END;`);
+    await connection.commit();
+    
+    console.log("✅ Farmer totals recalculated successfully");
+    
+    // Get verification results
+    const result = await connection.execute(`
+      SELECT 
+        f.farmer_id,
+        f.name,
+        f.total_farms,
+        f.total_area,
+        COUNT(fm.farm_id) AS actual_farms,
+        NVL(SUM(fm.area), 0) AS actual_area
+      FROM FARMER f
+      LEFT JOIN FARM fm ON f.farmer_id = fm.farmer_id AND fm.status = 'ACTIVE'
+      GROUP BY f.farmer_id, f.name, f.total_farms, f.total_area
+      ORDER BY f.farmer_id
+    `);
+    
+    const farmers = result.rows.map(row => ({
+      farmer_id: row[0],
+      name: row[1],
+      total_farms: row[2],
+      total_area: row[3],
+      actual_farms: row[4],
+      actual_area: row[5],
+      status: (row[2] === row[4] && row[3] === row[5]) ? 'CORRECT' : 'MISMATCH'
+    }));
+    
+    res.json({
+      message: "Farmer totals recalculated successfully",
+      farmers: farmers,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (err) {
+    console.error("Recalculate farmer totals error:", err);
+    res.status(500).json({ 
+      message: "Error recalculating farmer totals",
+      error: err.message 
+    });
+  } finally {
+    if (connection) {
+      await connection.close();
+    }
+  }
+});
+
+// ==================== WEATHER ALERT MANAGEMENT ENDPOINTS ====================
+
+// POST /admin/alerts/send - Send manual alert to specific farmers
+router.post("/alerts/send", protectAdmin, async (req, res) => {
+  const { farmerIds, message, alertType, severity } = req.body;
+
+  if (!farmerIds || !Array.isArray(farmerIds) || farmerIds.length === 0) {
+    return res.status(400).json({ message: "Farmer IDs array is required" });
+  }
+
+  if (!message || message.trim() === '') {
+    return res.status(400).json({ message: "Message is required" });
+  }
+
+  try {
+    // Import alert service
+    const { sendManualAlert } = await import('../services/alertService.js');
+    
+    const results = await sendManualAlert(
+      farmerIds, 
+      message, 
+      alertType || 'MANUAL',
+      severity || 'INFO'
+    );
+
+    res.json({
+      message: "Alerts sent successfully",
+      results: results,
+      totalSent: results.filter(r => r.success).length,
+      totalFailed: results.filter(r => !r.success).length
+    });
+  } catch (error) {
+    console.error("Error sending manual alerts:", error);
+    res.status(500).json({ 
+      message: "Failed to send alerts", 
+      error: error.message 
+    });
+  }
+});
+
+// POST /admin/alerts/broadcast - Broadcast alert to all active farmers
+router.post("/alerts/broadcast", protectAdmin, async (req, res) => {
+  const { message, alertType, severity } = req.body;
+
+  if (!message || message.trim() === '') {
+    return res.status(400).json({ message: "Message is required" });
+  }
+
+  let connection;
+  try {
+    connection = await getConnection();
+
+    // Get all active farmers
+    const result = await connection.execute(
+      `SELECT farmer_id FROM FARMER WHERE status = 'ACTIVE'`
+    );
+
+    const farmerIds = result.rows.map(row => row[0]);
+
+    if (farmerIds.length === 0) {
+      return res.json({ message: "No active farmers found" });
+    }
+
+    // Import alert service
+    const { sendManualAlert } = await import('../services/alertService.js');
+
+    const results = await sendManualAlert(
+      farmerIds, 
+      message, 
+      alertType || 'BROADCAST',
+      severity || 'INFO'
+    );
+
+    res.json({
+      message: "Broadcast sent successfully",
+      totalFarmers: farmerIds.length,
+      results: results,
+      totalSent: results.filter(r => r.success).length,
+      totalFailed: results.filter(r => !r.success).length
+    });
+  } catch (error) {
+    console.error("Error broadcasting alerts:", error);
+    res.status(500).json({ 
+      message: "Failed to broadcast alerts", 
+      error: error.message 
+    });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
+// GET /admin/alerts/history - View all sent alerts with filters
+router.get("/alerts/history", protectAdmin, async (req, res) => {
+  const { farmer_id, limit = 100, status, severity } = req.query;
+
+  let connection;
+  try {
+    connection = await getConnection();
+
+    let query = `
+      SELECT 
+        wa.alert_id, wa.farmer_id, wa.farm_id, wa.alert_type,
+        wa.weather_condition, DBMS_LOB.SUBSTR(wa.message, 4000, 1) as message,
+        wa.sent_via, wa.status, wa.severity, wa.created_date,
+        wa.sent_date, wa.is_read,
+        f.name as farmer_name, fm.farm_name
+      FROM WEATHER_ALERT wa
+      LEFT JOIN FARMER f ON wa.farmer_id = f.farmer_id
+      LEFT JOIN FARM fm ON wa.farm_id = fm.farm_id
+      WHERE 1=1
+    `;
+
+    const binds = { limit: parseInt(limit) };
+
+    if (farmer_id) {
+      query += ` AND wa.farmer_id = :farmer_id`;
+      binds.farmer_id = parseInt(farmer_id);
+    }
+
+    if (status) {
+      query += ` AND wa.status = :status`;
+      binds.status = status;
+    }
+
+    if (severity) {
+      query += ` AND wa.severity = :severity`;
+      binds.severity = severity;
+    }
+
+    query += ` ORDER BY wa.created_date DESC FETCH FIRST :limit ROWS ONLY`;
+
+    const result = await connection.execute(query, binds);
+
+    const alerts = result.rows.map(row => ({
+      alertId: row[0],
+      farmerId: row[1],
+      farmId: row[2],
+      alertType: row[3],
+      weatherCondition: row[4],
+      message: row[5],
+      sentVia: row[6],
+      status: row[7],
+      severity: row[8],
+      createdDate: row[9],
+      sentDate: row[10],
+      isRead: row[11] === 1,
+      farmerName: row[12],
+      farmName: row[13]
+    }));
+
+    // Get statistics
+    const statsResult = await connection.execute(`
+      SELECT 
+        COUNT(*) as total_alerts,
+        SUM(CASE WHEN status = 'SENT' THEN 1 ELSE 0 END) as sent,
+        SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed,
+        SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END) as read_count
+      FROM WEATHER_ALERT
+    `);
+
+    const stats = {
+      totalAlerts: statsResult.rows[0][0],
+      sent: statsResult.rows[0][1],
+      failed: statsResult.rows[0][2],
+      readCount: statsResult.rows[0][3]
+    };
+
+    res.json({
+      alerts: alerts,
+      statistics: stats
+    });
+  } catch (error) {
+    console.error("Error fetching alert history:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch alert history", 
+      error: error.message 
+    });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
+// GET /admin/alerts/stats - Get alert statistics
+router.get("/alerts/stats", protectAdmin, async (req, res) => {
+  let connection;
+  try {
+    connection = await getConnection();
+
+    const result = await connection.execute(`
+      SELECT 
+        alert_type,
+        severity,
+        COUNT(*) as count,
+        SUM(CASE WHEN status = 'SENT' THEN 1 ELSE 0 END) as sent,
+        SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed,
+        SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END) as read_count
+      FROM WEATHER_ALERT
+      GROUP BY alert_type, severity
+      ORDER BY count DESC
+    `);
+
+    const stats = result.rows.map(row => ({
+      alertType: row[0],
+      severity: row[1],
+      count: row[2],
+      sent: row[3],
+      failed: row[4],
+      readCount: row[5]
+    }));
+
+    res.json(stats);
+  } catch (error) {
+    console.error("Error fetching alert stats:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch alert statistics", 
+      error: error.message 
+    });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
 export default router;

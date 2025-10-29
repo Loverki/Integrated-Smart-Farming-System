@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "../api/axios";
 import api from "../api/axios";
+import NotificationBell from "../components/NotificationBell";
 
 const featureCards = [
   {
@@ -262,34 +263,55 @@ export default function Dashboard() {
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Please log in first!");
-      navigate("/login");
+      navigate("/");
       return;
     }
 
+    // Verify user still exists in database
+    verifyUser();
     fetchFarmerStats();
     fetchWeatherAlerts();
   }, [navigate]);
 
+  // Verify user exists in database on component load
+  const verifyUser = async () => {
+    try {
+      const response = await axios.get("/auth/verify");
+      if (!response.data.valid) {
+        handleAuthError("Your account was not found. Please login again.");
+      }
+    } catch (err) {
+      console.error("User verification failed:", err);
+      // Axios interceptor will handle clearing localStorage and redirecting
+    }
+  };
+
   // Handle token expiration/invalid token errors
-  const handleAuthError = () => {
-    console.log("Auth error detected - clearing local storage and redirecting to login");
+  const handleAuthError = (message = "Your session has expired or is invalid. Please log in again.") => {
+    console.log("Auth error detected - clearing local storage and redirecting to home");
     localStorage.removeItem("token");
     localStorage.removeItem("farmerId");
     localStorage.removeItem("farmerName");
-    alert("Your session has expired or is invalid. Please log in again.");
-    navigate("/login");
+    alert(message);
+    navigate("/");
   };
 
   const fetchFarmerStats = async () => {
     try {
-      const response = await axios.get("/farmers/dashboard-stats");
+      // Always fetch fresh data from database - no caching
+      const response = await axios.get("/farmers/dashboard-stats", {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       setFarmerStats(response.data);
     } catch (err) {
       console.error("Error fetching farmer stats:", err);
       
       // Check if it's an authentication error
-      if (err.response && err.response.status === 401) {
-        handleAuthError();
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        // Axios interceptor will handle this
         return;
       }
       
@@ -355,6 +377,9 @@ export default function Dashboard() {
               {farmerName && <p className="text-lg mt-1 opacity-90">Welcome back, {farmerName}!</p>}
             </div>
             <div className="flex items-center space-x-4">
+              {/* Notification Bell */}
+              <NotificationBell />
+              
               <button
                 onClick={() => navigate("/analytics")}
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2"

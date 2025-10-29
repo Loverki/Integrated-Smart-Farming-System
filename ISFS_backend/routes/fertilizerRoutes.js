@@ -29,7 +29,7 @@ router.get("/", async (req, res) => {
         fer.unit,
         fer.cost_per_unit,
         fer.total_cost,
-        fer.applied_date,
+        fer.application_date,
         fer.applied_by,
         fer.crop_id,
         fer.application_method,
@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
       JOIN FARM f ON fer.farm_id = f.farm_id
       LEFT JOIN CROP c ON fer.crop_id = c.crop_id
       WHERE f.farmer_id = :farmer_id
-      ORDER BY fer.applied_date DESC
+      ORDER BY fer.application_date DESC
       `,
       { farmer_id }
     );
@@ -85,7 +85,7 @@ router.post("/", async (req, res) => {
   }
 
   if (!farm_id || !fertilizer_name || !quantity_used || !applied_date) {
-    return res.status(400).json({ message: "Missing required fields: farm, fertilizer name, quantity, and applied date are required" });
+    return res.status(400).json({ message: "Missing required fields: farm, fertilizer name, quantity, and application date are required" });
   }
 
   let connection;
@@ -105,7 +105,7 @@ router.post("/", async (req, res) => {
     const insertQuery = `
       INSERT INTO FERTILIZER(
         fertilizer_id, farm_id, fertilizer_name, fertilizer_type,
-        quantity_used, unit, applied_date, cost_per_unit, total_cost,
+        quantity_used, unit, application_date, cost_per_unit, total_cost,
         applied_by, crop_id, application_method, effectiveness_rating
       ) VALUES(
         FERTILIZER_SEQ.NEXTVAL, :farm_id, :fertilizer_name, :fertilizer_type,

@@ -40,6 +40,8 @@ import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import WeatherDashboard from "./pages/WeatherDashboard";
 import AlertPreferences from "./pages/AlertPreferences";
 import AlertManagement from "./pages/admin/AlertManagement";
+import Notifications from "./pages/Notifications";
+import SequenceManagement from "./pages/admin/SequenceManagement";
 
 function App() {
   return (
@@ -110,6 +112,14 @@ function App() {
             </AdminProtectedRoute>
           }
         />
+        <Route
+          path="/admin/sequences"
+          element={
+            <AdminProtectedRoute>
+              <SequenceManagement />
+            </AdminProtectedRoute>
+          }
+        />
 
         {/* Weather Alert Routes */}
         <Route
@@ -125,6 +135,16 @@ function App() {
           element={
             <ProtectedRoute>
               <AlertPreferences />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Notifications Route */}
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
             </ProtectedRoute>
           }
         />

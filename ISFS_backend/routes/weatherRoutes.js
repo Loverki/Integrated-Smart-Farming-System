@@ -33,7 +33,8 @@ router.get('/current/:farm_id', async (req, res) => {
       return res.status(404).json({ message: 'Farm not found or access denied' });
     }
 
-    const location = farmCheck.rows[0][0];
+    const location = farmCheck.rows[0].LOCATION || farmCheck.rows[0].location || farmCheck.rows[0][0];
+    console.log(`🌦️ Fetching current weather for farm ${farm_id}, location: "${location}"`);
     
     // Get coordinates and fetch weather
     const coords = await getCoordinatesFromLocation(location);
@@ -74,7 +75,8 @@ router.get('/forecast/:farm_id', async (req, res) => {
       return res.status(404).json({ message: 'Farm not found or access denied' });
     }
 
-    const location = farmCheck.rows[0][0];
+    const location = farmCheck.rows[0].LOCATION || farmCheck.rows[0].location || farmCheck.rows[0][0];
+    console.log(`📅 Fetching forecast for farm ${farm_id}, location: "${location}"`);
     
     // Get coordinates and fetch forecast
     const coords = await getCoordinatesFromLocation(location);

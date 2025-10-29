@@ -211,10 +211,10 @@ WHERE labour_id = ${labourId}`,
                     const name = labour.NAME || labour.name || labour[1];
                     const phone = labour.PHONE || labour.phone || labour[2];
                     const email = labour.EMAIL || labour.email || labour[3];
-                    const skill = labour.SKILL || labour.skill || labour[4];
+                    const skill = labour.SKILL || labour.skill || labour.ROLE || labour.role || labour[4];
                     const hourlyRate = labour.HOURLY_RATE || labour.hourly_rate || labour[5];
-                    const status = labour.STATUS || labour.status || labour[8];
-                    const hireDate = labour.HIRE_DATE || labour.hire_date || labour[7];
+                    const status = labour.STATUS || labour.status || labour[9];
+                    const hireDate = labour.HIRE_DATE || labour.hire_date || labour[8];
 
                     return (
                       <tr key={index} className="hover:bg-green-50 transition-colors">

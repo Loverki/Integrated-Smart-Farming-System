@@ -1,0 +1,672 @@
+{
+  "project": {
+    "name": "Integrated Smart Farming System (ISFS)",
+    "version": "1.0.0",
+    "description": "A comprehensive web-based platform for managing farming operations in India, including farm management, crop tracking, weather monitoring, sales analytics, and administrative oversight.",
+    "type": "Full-Stack Web Application",
+    "country": "India",
+    "currency": "INR (₹)"
+  },
+  
+  "technology_stack": {
+    "frontend": {
+      "framework": "React 18.3.1",
+      "build_tool": "Vite 5.4.10",
+      "routing": "React Router DOM v6",
+      "http_client": "Axios",
+      "styling": "Tailwind CSS",
+      "language": "JavaScript (JSX)"
+    },
+    "backend": {
+      "runtime": "Node.js",
+      "framework": "Express.js 4.21.1",
+      "language": "JavaScript (ES Modules)",
+      "authentication": "JWT (jsonwebtoken 9.0.2)",
+      "password_hashing": "bcryptjs 2.4.3",
+      "environment": "dotenv 16.4.5"
+    },
+    "database": {
+      "type": "Oracle Database",
+      "driver": "oracledb 6.7.0",
+      "connection_mode": "Thin mode",
+      "output_format": "Object format (oracledb.OUT_FORMAT_OBJECT)"
+    },
+    "external_apis": {
+      "weather": "OpenWeatherMap API",
+      "sms": "Twilio (optional)",
+      "geocoding": "OpenWeatherMap Geocoding API"
+    }
+  },
+  
+  "architecture": {
+    "pattern": "Client-Server Architecture",
+    "frontend_port": 5173,
+    "backend_port": 5000,
+    "authentication": "JWT-based token authentication",
+    "authorization": "Role-based access control (Farmer, Admin, Super Admin)",
+    "data_flow": [
+      "User authenticates via login/register",
+      "JWT token stored in localStorage",
+      "Axios interceptor adds token to all API requests",
+      "Backend middleware verifies token and user status",
+      "Database queries filtered by authenticated user's ID",
+      "Response sent back to frontend",
+      "Frontend updates UI with fetched data"
+    ]
+  },
+  
+  "database_schema": {
+    "tables": [
+      {
+        "name": "FARMER",
+        "description": "Stores farmer registration and profile data",
+        "key_columns": ["FARMER_ID (PK)", "NAME", "PHONE", "EMAIL", "PASSWORD", "STATUS", "TOTAL_FARMS", "TOTAL_AREA"]
+      },
+      {
+        "name": "ADMIN",
+        "description": "Stores admin user accounts",
+        "key_columns": ["ADMIN_ID (PK)", "USERNAME", "EMAIL", "PASSWORD", "FULL_NAME", "ROLE", "STATUS"]
+      },
+      {
+        "name": "FARM",
+        "description": "Stores farm information for each farmer",
+        "key_columns": ["FARM_ID (PK)", "FARMER_ID (FK)", "FARM_NAME", "LOCATION", "AREA", "SOIL_TYPE", "SOIL_PH", "IRRIGATION_TYPE", "STATUS"]
+      },
+      {
+        "name": "CROP",
+        "description": "Stores crop cultivation details",
+        "key_columns": ["CROP_ID (PK)", "FARM_ID (FK)", "CROP_NAME", "VARIETY", "SOWING_DATE", "EXPECTED_HARVEST_DATE", "EXPECTED_YIELD", "ACTUAL_YIELD", "CROP_STATUS"]
+      },
+      {
+        "name": "SALES",
+        "description": "Records crop sales transactions",
+        "key_columns": ["SALE_ID (PK)", "CROP_ID (FK)", "FARM_ID (FK)", "BUYER_NAME", "QUANTITY_SOLD", "PRICE_PER_UNIT", "TOTAL_AMOUNT", "SALE_DATE", "PAYMENT_STATUS"]
+      },
+      {
+        "name": "FERTILIZER",
+        "description": "Tracks fertilizer application records",
+        "key_columns": ["FERTILIZER_ID (PK)", "FARM_ID (FK)", "FERTILIZER_NAME", "FERTILIZER_TYPE", "QUANTITY_USED", "APPLICATION_DATE", "TOTAL_COST"]
+      },
+      {
+        "name": "LABOUR",
+        "description": "Stores labor worker information",
+        "key_columns": ["LABOUR_ID (PK)", "NAME", "PHONE", "SKILL", "HOURLY_RATE", "STATUS"]
+      },
+      {
+        "name": "LABOURWORK",
+        "description": "Records labor work assignments and hours",
+        "key_columns": ["WORK_ID (PK)", "LABOUR_ID (FK)", "FARM_ID (FK)", "WORK_TYPE", "WORK_DATE", "HOURS_WORKED", "TOTAL_COST", "STATUS"]
+      },
+      {
+        "name": "EQUIPMENT",
+        "description": "Manages farming equipment inventory",
+        "key_columns": ["EQUIPMENT_ID (PK)", "FARM_ID (FK)", "EQUIPMENT_NAME", "EQUIPMENT_TYPE", "PURCHASE_DATE", "PURCHASE_COST", "STATUS"]
+      },
+      {
+        "name": "WEATHER_DATA",
+        "description": "Stores historical weather data for farms",
+        "key_columns": ["WEATHER_ID (PK)", "FARM_ID (FK)", "RECORDED_DATE", "TEMPERATURE", "RAINFALL", "HUMIDITY", "WIND_SPEED"]
+      }
+    ],
+    "sequences": [
+      "FARMER_SEQ", "ADMIN_SEQ", "FARM_SEQ", "CROP_SEQ", "SALES_SEQ",
+      "FERTILIZER_SEQ", "LABOUR_SEQ", "LABOURWORK_SEQ", "EQUIPMENT_SEQ", "WEATHER_SEQ"
+    ],
+    "stored_procedures": [
+      {
+        "name": "RESET_SEQUENCE",
+        "purpose": "Resets a specific sequence to match the maximum ID in its table"
+      },
+      {
+        "name": "RESET_ALL_SEQUENCES",
+        "purpose": "Resets all sequences in the database"
+      }
+    ],
+    "database_views": [
+      "FARM_PERFORMANCE - Aggregated farm statistics with revenue and crop counts",
+      "CROP_SUMMARY - Detailed crop information with farm and farmer details",
+      "SALES_OVERVIEW - Sales records with crop and farm information",
+      "FERTILIZER_USAGE - Fertilizer application records with farm details",
+      "LABOUR_COST_SUMMARY - Labor cost analysis by farm"
+    ]
+  },
+  
+  "features": {
+    "farmer_features": [
+      {
+        "category": "Authentication",
+        "features": [
+          "Farmer registration with encrypted password",
+          "Secure login with JWT token",
+          "Session persistence with localStorage",
+          "Auto-logout on account deletion/deactivation"
+        ]
+      },
+      {
+        "category": "Dashboard",
+        "features": [
+          "Real-time statistics (farms, crops, sales, revenue)",
+          "Recent weather alerts display",
+          "Notification bell with unread count",
+          "Quick action buttons for common tasks"
+        ]
+      },
+      {
+        "category": "Farm Management",
+        "features": [
+          "Add, view, edit, and delete farms",
+          "Track farm details (location, area, soil type, pH, irrigation)",
+          "View all crops for a farm",
+          "Farm performance metrics"
+        ]
+      },
+      {
+        "category": "Crop Management",
+        "features": [
+          "Add crops with sowing and harvest dates",
+          "Track expected vs. actual yield",
+          "Monitor crop growth stages",
+          "Edit and update crop status",
+          "View crop history and performance"
+        ]
+      },
+      {
+        "category": "Sales Tracking",
+        "features": [
+          "Record crop sales with buyer information",
+          "Track payment status (PAID, PENDING, PARTIAL)",
+          "Calculate total revenue automatically",
+          "View sales history and analytics",
+          "Filter sales by farm or crop"
+        ]
+      },
+      {
+        "category": "Fertilizer Management",
+        "features": [
+          "Record fertilizer applications",
+          "Track fertilizer types (ORGANIC, INORGANIC, BIO_FERTILIZER)",
+          "Monitor fertilizer costs",
+          "Application date tracking",
+          "Effectiveness rating system"
+        ]
+      },
+      {
+        "category": "Labour Management",
+        "features": [
+          "Add and manage labor workers",
+          "Track labor skills and hourly rates",
+          "Record work assignments and hours",
+          "Calculate labor costs automatically",
+          "View labor work history",
+          "Filter workers by availability"
+        ]
+      },
+      {
+        "category": "Equipment Management",
+        "features": [
+          "Track farming equipment inventory",
+          "Record purchase dates and costs",
+          "Monitor equipment status (WORKING, UNDER_REPAIR, RETIRED)",
+          "Manage equipment across multiple farms"
+        ]
+      },
+      {
+        "category": "Weather Dashboard",
+        "features": [
+          "Real-time weather data from OpenWeatherMap API",
+          "Current weather conditions (temperature, humidity, wind, rainfall)",
+          "5-day weather forecast",
+          "Location-based weather for each farm",
+          "Weather alerts and notifications",
+          "Historical weather data storage"
+        ]
+      },
+      {
+        "category": "Notifications",
+        "features": [
+          "In-app notification system",
+          "Receive alerts from admin (weather, advisory, fertilizer tips)",
+          "Notification types: INFO, WARNING, CRITICAL, WEATHER, FERTILIZER, ADVISORY",
+          "Mark notifications as read",
+          "Notification history",
+          "Unread notification count in bell icon"
+        ]
+      },
+      {
+        "category": "Analytics",
+        "features": [
+          "Financial analytics dashboard",
+          "Revenue trends and charts",
+          "Crop performance analysis",
+          "Farm comparison tools",
+          "Sales analytics",
+          "Cost breakdowns (fertilizer, labor, equipment)"
+        ]
+      },
+      {
+        "category": "Database Operations",
+        "features": [
+          "View database views (FARM_PERFORMANCE, CROP_SUMMARY, etc.)",
+          "Execute read-only queries",
+          "Data visualization in tables",
+          "Export data capabilities"
+        ]
+      }
+    ],
+    
+    "admin_features": [
+      {
+        "category": "Admin Dashboard",
+        "features": [
+          "System-wide statistics overview",
+          "Total farmers, farms, crops, revenue",
+          "Active farmer count",
+          "Quick access to admin tools"
+        ]
+      },
+      {
+        "category": "Farmer Management",
+        "features": [
+          "View all registered farmers",
+          "Farmer search and pagination",
+          "View detailed farmer profiles with stats",
+          "Activate/deactivate farmer accounts",
+          "Monitor farmer activities"
+        ]
+      },
+      {
+        "category": "System Analytics",
+        "features": [
+          "System-wide performance metrics",
+          "Revenue trends analysis",
+          "Crop distribution and performance",
+          "Top farmers leaderboard",
+          "Monthly revenue charts",
+          "Export analytics to CSV"
+        ]
+      },
+      {
+        "category": "Notification Management",
+        "features": [
+          "Send targeted notifications to specific farmers",
+          "Broadcast messages to all farmers",
+          "Notification types: INFO, WEATHER, FERTILIZER, ADVISORY, WARNING, CRITICAL",
+          "View notification history",
+          "Track notification statistics",
+          "Real-time notification delivery"
+        ]
+      },
+      {
+        "category": "Database Tools",
+        "features": [
+          "Execute custom SQL queries",
+          "Pre-built query templates",
+          "View query results in formatted tables",
+          "Export results to CSV",
+          "Database security (read-only for non-super admins)"
+        ]
+      },
+      {
+        "category": "User Management",
+        "features": [
+          "Create new admin accounts (SUPER_ADMIN only)",
+          "Manage admin roles (SUPER_ADMIN, MANAGER, ADMIN)",
+          "Activate/deactivate admin accounts",
+          "View admin activity logs"
+        ]
+      },
+      {
+        "category": "Sequence Management",
+        "features": [
+          "View current sequence values",
+          "Reset individual sequences",
+          "Reset all sequences at once",
+          "Synchronize sequences with table data",
+          "Prevent ID conflicts"
+        ]
+      }
+    ]
+  },
+  
+  "api_endpoints": {
+    "authentication": [
+      "POST /api/auth/register - Farmer registration",
+      "POST /api/auth/login - Farmer login",
+      "GET /api/auth/verify - Verify JWT token validity",
+      "POST /api/admin/login - Admin login"
+    ],
+    "farmer_endpoints": [
+      "GET /api/farms - Get all farms for logged-in farmer",
+      "POST /api/farms - Create new farm",
+      "PUT /api/farms/:id - Update farm details",
+      "DELETE /api/farms/:id - Delete farm",
+      "GET /api/crops - Get all crops for farmer",
+      "POST /api/crops - Add new crop",
+      "PUT /api/crops/:id - Update crop",
+      "DELETE /api/crops/:id - Delete crop",
+      "GET /api/sales - Get all sales records",
+      "POST /api/sales - Record new sale",
+      "GET /api/fertilizers - Get fertilizer records",
+      "POST /api/fertilizers - Add fertilizer application",
+      "GET /api/labour - Get labor workers",
+      "POST /api/labour - Add labor worker",
+      "GET /api/labourwork - Get labor work records",
+      "POST /api/labourwork - Record labor work",
+      "GET /api/equipment - Get equipment list",
+      "POST /api/equipment - Add equipment",
+      "GET /api/weather/current/:farm_id - Get current weather for farm",
+      "GET /api/weather/forecast/:farm_id - Get 5-day forecast",
+      "GET /api/weather/alerts - Get weather alerts",
+      "GET /api/notifications - Get farmer notifications",
+      "PUT /api/notifications/:id/read - Mark notification as read",
+      "DELETE /api/notifications/:id - Delete notification"
+    ],
+    "admin_endpoints": [
+      "GET /api/admin/stats - Get system statistics",
+      "GET /api/admin/farmers - Get all farmers (paginated)",
+      "GET /api/admin/farmers/:id - Get farmer details",
+      "PUT /api/admin/farmers/:id/status - Activate/deactivate farmer",
+      "GET /api/admin/analytics/overview - System analytics overview",
+      "GET /api/admin/analytics/revenue - Revenue trends",
+      "GET /api/admin/analytics/crops - Crop analytics",
+      "GET /api/admin/analytics/top-farmers - Top farmers leaderboard",
+      "POST /api/admin/alerts/send - Send notification to farmer",
+      "POST /api/admin/alerts/broadcast - Broadcast to all farmers",
+      "GET /api/admin/alerts/history - Notification history",
+      "GET /api/admin/alerts/stats - Notification statistics",
+      "POST /api/admin/query/execute - Execute SQL query",
+      "POST /api/admin/create - Create new admin (SUPER_ADMIN only)",
+      "GET /api/admin/users - Get all admins",
+      "PUT /api/admin/users/:id/status - Activate/deactivate admin",
+      "GET /api/sequences/status - Get all sequence values",
+      "POST /api/sequences/reset - Reset specific sequence",
+      "POST /api/sequences/reset-all - Reset all sequences"
+    ],
+    "views_endpoints": [
+      "GET /api/views/:view_name - Get data from database view"
+    ]
+  },
+  
+  "frontend_pages": {
+    "public_pages": [
+      "/ - Home page with agriculture information",
+      "/login - Farmer login",
+      "/register - Farmer registration",
+      "/admin-login - Admin login"
+    ],
+    "farmer_pages": [
+      "/dashboard - Farmer dashboard with statistics",
+      "/farms - Farm management",
+      "/add-farm - Add new farm",
+      "/edit-farm/:id - Edit farm details",
+      "/crops - Crop management",
+      "/add-crop - Add new crop",
+      "/edit-crop/:id - Edit crop details",
+      "/farm-crops/:id - View crops for specific farm",
+      "/crops-overview - View all crops",
+      "/sales - Sales records",
+      "/add-sale - Record new sale",
+      "/fertilizers - Fertilizer management",
+      "/add-fertilizer - Add fertilizer application",
+      "/labour - Labor workers list",
+      "/add-labour - Add new labor worker",
+      "/labour-work - Labor work records",
+      "/add-labour-work - Record labor work",
+      "/equipment - Equipment management",
+      "/add-equipment - Add new equipment",
+      "/weather - Weather dashboard",
+      "/alert-preferences - Weather alert settings",
+      "/notifications - View all notifications",
+      "/analytics - Financial analytics",
+      "/database-views - View database views",
+      "/farm-comparison - Compare farm performance",
+      "/functions - Database functions viewer",
+      "/stored-procedures - Stored procedures viewer"
+    ],
+    "admin_pages": [
+      "/admin-dashboard - Admin overview",
+      "/admin/farmers - Farmer management",
+      "/admin/analytics - System analytics",
+      "/admin/alerts - Notification management",
+      "/admin/database - Database query tool",
+      "/admin/users - Admin user management (SUPER_ADMIN only)",
+      "/admin/sequences - Database sequence management"
+    ]
+  },
+  
+  "key_components": [
+    {
+      "name": "ProtectedRoute",
+      "purpose": "Ensures only authenticated farmers can access protected pages",
+      "redirects_to": "Home page (/) if not authenticated"
+    },
+    {
+      "name": "AdminProtectedRoute",
+      "purpose": "Ensures only authenticated admins can access admin pages",
+      "redirects_to": "Home page (/) if not authenticated"
+    },
+    {
+      "name": "Navbar",
+      "purpose": "Public navigation bar for home page"
+    },
+    {
+      "name": "NotificationBell",
+      "purpose": "Shows unread notification count and dropdown for farmers"
+    },
+    {
+      "name": "WeatherNotification",
+      "purpose": "Displays weather alerts on farmer dashboard"
+    },
+    {
+      "name": "SQLQueryVisualizer",
+      "purpose": "Visualizes SQL queries and results in admin panel"
+    }
+  ],
+  
+  "authentication_flow": {
+    "farmer_registration": [
+      "User fills registration form with name, phone, email, password, address",
+      "Password hashed with bcrypt (10 salt rounds)",
+      "Farmer record inserted into FARMER table",
+      "FARMER_SEQ generates unique FARMER_ID",
+      "Success message returned to frontend"
+    ],
+    "farmer_login": [
+      "User enters phone and password",
+      "Backend queries FARMER table by phone",
+      "Password compared with bcrypt",
+      "Check if farmer STATUS is ACTIVE",
+      "JWT token generated with farmer_id and name (24h expiry)",
+      "Token and farmer data returned to frontend",
+      "Frontend stores token, farmerId, farmerName in localStorage"
+    ],
+    "admin_login": [
+      "Admin enters username and password",
+      "Backend queries ADMIN table by username",
+      "Password compared with bcrypt",
+      "Check if admin STATUS is ACTIVE",
+      "JWT token generated with admin_id, username, role (8h expiry)",
+      "Token and admin data returned to frontend",
+      "Frontend stores adminToken, adminId, adminRole, adminName in localStorage"
+    ],
+    "token_verification": [
+      "Axios interceptor adds Authorization header to all requests",
+      "Backend middleware decodes JWT token",
+      "Checks if user exists in database",
+      "Checks if user STATUS is ACTIVE",
+      "If invalid: clears localStorage and redirects to home",
+      "If valid: attaches user data to req.farmer or req.admin"
+    ]
+  },
+  
+  "security_features": [
+    "Password hashing with bcrypt",
+    "JWT token-based authentication",
+    "Token expiration (24h for farmers, 8h for admins)",
+    "Middleware verification on every protected route",
+    "Database checks for user existence and status",
+    "Automatic logout on account deletion/deactivation",
+    "Role-based access control (Farmer, Admin, Super Admin)",
+    "Query parameter validation",
+    "SQL injection prevention (parameterized queries)",
+    "CORS configuration",
+    "Environment variables for sensitive data (.env file)"
+  ],
+  
+  "data_handling": {
+    "database_format": "Oracle returns data as objects (OUT_FORMAT_OBJECT)",
+    "field_naming": {
+      "database": "UPPERCASE (FARMER_ID, FARM_NAME, etc.)",
+      "backend_response": "Varies (camelCase or lowercase)",
+      "frontend_handling": "Checks multiple formats (camelCase, UPPERCASE, lowercase, array)"
+    },
+    "number_formatting": "Indian format with locale (10,00,000)",
+    "currency_display": "₹ (Indian Rupees)",
+    "date_format": "DD/MM/YYYY for display, ISO for storage"
+  },
+  
+  "error_handling": {
+    "frontend": [
+      "Axios interceptor catches 401/403 errors",
+      "Automatic localStorage cleanup on auth errors",
+      "User-friendly error messages",
+      "Console logging for debugging",
+      "Redirect to appropriate pages on errors"
+    ],
+    "backend": [
+      "Try-catch blocks around all async operations",
+      "Database connection error handling",
+      "Detailed error logging with console.error",
+      "Appropriate HTTP status codes (400, 401, 403, 404, 500)",
+      "Error messages with helpful information"
+    ]
+  },
+  
+  "recent_fixes_and_improvements": [
+    {
+      "issue": "Dropdown options not visible",
+      "solution": "Fixed data format handling to support both camelCase and UPPERCASE from backend"
+    },
+    {
+      "issue": "Weather showing same data for all farms",
+      "solution": "Fixed location extraction from database (was undefined) and removed default coordinates fallback"
+    },
+    {
+      "issue": "Admin unable to send notifications",
+      "solution": "Fixed Axios interceptor to use correct token based on route (/admin routes use adminToken)"
+    },
+    {
+      "issue": "Farms filter showing zero farms",
+      "solution": "Fixed status check to handle both uppercase and lowercase field names"
+    },
+    {
+      "issue": "Labor and labor work not filtering by farmer",
+      "solution": "Added JOIN queries to filter labor data by farmer's farms"
+    },
+    {
+      "issue": "Fertilizer add failing with APPLIED_DATE error",
+      "solution": "Updated to use APPLICATION_DATE column name as per database schema"
+    },
+    {
+      "issue": "Sequence numbers out of sync",
+      "solution": "Created RESET_SEQUENCE procedures and admin UI for sequence management"
+    },
+    {
+      "issue": "Deleted farmers still able to login",
+      "solution": "Enhanced middleware to verify user existence and status on every request"
+    }
+  ],
+  
+  "setup_instructions": {
+    "prerequisites": [
+      "Node.js (v16 or higher)",
+      "Oracle Database (11g or higher)",
+      "OpenWeatherMap API key (free tier)",
+      "Twilio account (optional, for SMS alerts)"
+    ],
+    "backend_setup": [
+      "cd ISFS_backend",
+      "npm install",
+      "Create .env file with DB credentials and API keys",
+      "Run database schema: complete_schema_production.sql",
+      "Create admin: node database/create-admin.js",
+      "npm start (server runs on port 5000)"
+    ],
+    "frontend_setup": [
+      "cd ISFS_frontend",
+      "npm install",
+      "npm run dev (server runs on port 5173)"
+    ],
+    "environment_variables": {
+      "DB_USER": "Oracle database username",
+      "DB_PASSWORD": "Oracle database password",
+      "DB_CONNECT_STRING": "localhost:1521/XEPDB1",
+      "JWT_SECRET": "Secret key for JWT signing",
+      "OPENWEATHER_API_KEY": "OpenWeatherMap API key",
+      "TWILIO_ACCOUNT_SID": "Twilio account SID (optional)",
+      "TWILIO_AUTH_TOKEN": "Twilio auth token (optional)",
+      "TWILIO_PHONE_NUMBER": "Twilio phone number (optional)"
+    }
+  },
+  
+  "project_structure": {
+    "backend": {
+      "controllers": "Business logic handlers",
+      "database": "SQL scripts and database connection",
+      "middleware": "Authentication and authorization middleware",
+      "routes": "API route definitions",
+      "services": "External API integrations (weather, SMS, alerts, notifications)"
+    },
+    "frontend": {
+      "api": "Axios configuration and API client",
+      "assets": "Images and static files",
+      "components": "Reusable React components",
+      "pages": "Page components for routing"
+    }
+  },
+  
+  "key_achievements": [
+    "Complete farm-to-sale lifecycle tracking",
+    "Real-time weather integration for Indian cities",
+    "Comprehensive analytics and reporting",
+    "Multi-level user management (Farmer, Admin, Super Admin)",
+    "In-app notification system",
+    "Database sequence management",
+    "Robust authentication with automatic session management",
+    "Indian currency and number formatting throughout",
+    "Responsive UI with Tailwind CSS",
+    "RESTful API design with proper error handling"
+  ],
+  
+  "future_enhancements": [
+    "Mobile app (React Native)",
+    "SMS notifications via Twilio",
+    "Crop disease detection with AI/ML",
+    "Market price predictions",
+    "Multilingual support (Hindi, regional languages)",
+    "Export reports to PDF",
+    "Crop rotation recommendations",
+    "Automated irrigation scheduling",
+    "Integration with government schemes",
+    "Farmer community forum"
+  ],
+  
+  "report_sections_to_include": [
+    "1. Executive Summary - Overview of the project and its objectives",
+    "2. Introduction - Background, problem statement, and solution approach",
+    "3. System Architecture - Technical architecture diagrams and explanation",
+    "4. Technology Stack - Detailed analysis of technologies used and why",
+    "5. Database Design - ER diagrams, schema details, relationships",
+    "6. Features and Functionality - Detailed description of all features",
+    "7. User Interface - Screenshots and UI/UX design principles",
+    "8. API Documentation - Complete API endpoint reference",
+    "9. Security Implementation - Authentication, authorization, data protection",
+    "10. Testing and Quality Assurance - Testing approach and results",
+    "11. Deployment - Setup instructions and deployment process",
+    "12. Challenges and Solutions - Problems faced and how they were solved",
+    "13. Results and Impact - Expected benefits for Indian farmers",
+    "14. Future Scope - Potential enhancements and roadmap",
+    "15. Conclusion - Summary of achievements and learnings"
+  ]
+}
+

@@ -51,6 +51,8 @@ const startServer = async () => {
     const { default: functionsRoutes } = await import("./routes/functionsRoutes.js");
     const { default: analyticsRoutes } = await import("./routes/analyticsRoutes.js");
     const { default: weatherRoutes } = await import("./routes/weatherRoutes.js");
+    const { default: notificationRoutes } = await import("./routes/notificationRoutes.js");
+    const { default: sequenceRoutes } = await import("./routes/sequenceRoutes.js");
     const { protect } = await import("./middleware/authMiddleware.js");
     const { protectAdmin, requireRole } = await import("./middleware/adminAuthMiddleware.js");
 
@@ -78,6 +80,12 @@ const startServer = async () => {
     
     // Weather alert system routes (protected - requires farmer authentication)
     app.use("/api/weather", protect, weatherRoutes);
+    
+    // Notification routes (protected - requires farmer authentication)
+    app.use("/api/notifications", protect, notificationRoutes);
+    
+    // Sequence management routes (protected - admin only)
+    app.use("/api/sequences", sequenceRoutes);
 
     // Setup weather alert cron job - runs every hour
     console.log("⏰ Setting up weather alert cron job (runs every hour)...");

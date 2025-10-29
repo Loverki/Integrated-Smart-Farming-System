@@ -7,6 +7,7 @@ const AlertManagement = () => {
   const [stats, setStats] = useState(null);
   const [selectedFarmers, setSelectedFarmers] = useState([]);
   const [alertForm, setAlertForm] = useState({
+    title: '',
     message: '',
     alertType: 'MANUAL',
     severity: 'INFO'
@@ -119,6 +120,7 @@ const AlertManagement = () => {
     try {
       const response = await api.post('/admin/alerts/send', {
         farmerIds: selectedFarmers,
+        title: alertForm.title,
         message: alertForm.message,
         alertType: alertForm.alertType,
         severity: alertForm.severity
@@ -126,10 +128,10 @@ const AlertManagement = () => {
 
       setMessage({ 
         type: 'success', 
-        text: `Alert sent to ${response.data.totalSent} farmer(s)` 
+        text: `Notification sent to ${response.data.totalSent} farmer(s)` 
       });
       
-      setAlertForm({ message: '', alertType: 'MANUAL', severity: 'INFO' });
+      setAlertForm({ title: '', message: '', alertType: 'MANUAL', severity: 'INFO' });
       setSelectedFarmers([]);
       fetchAlertHistory();
       fetchStats();
@@ -156,6 +158,7 @@ const AlertManagement = () => {
 
     try {
       const response = await api.post('/admin/alerts/broadcast', {
+        title: alertForm.title,
         message: alertForm.message,
         alertType: 'BROADCAST',
         severity: alertForm.severity
@@ -166,7 +169,7 @@ const AlertManagement = () => {
         text: `Broadcast sent to ${response.data.totalSent} farmer(s)` 
       });
       
-      setAlertForm({ message: '', alertType: 'MANUAL', severity: 'INFO' });
+      setAlertForm({ title: '', message: '', alertType: 'MANUAL', severity: 'INFO' });
       fetchAlertHistory();
       fetchStats();
     } catch (error) {
@@ -188,7 +191,10 @@ const AlertManagement = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Weather Alert Management</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">Notification Management</h1>
+        <p className="text-gray-600 mb-6">
+          Send important notifications to farmers about weather, fertilizer use, and other farming advisories.
+        </p>
 
         {/* Message */}
         {message.text && (
@@ -219,36 +225,51 @@ const AlertManagement = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Send Alert Form */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Send Weather Alert</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Send Notification to Farmers</h2>
             
             <form onSubmit={handleSendAlert} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Alert Message
+                  Notification Title
+                </label>
+                <input
+                  type="text"
+                  value={alertForm.title}
+                  onChange={(e) => setAlertForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500"
+                  placeholder="Enter notification title..."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notification Message
                 </label>
                 <textarea
                   value={alertForm.message}
                   onChange={(e) => setAlertForm(prev => ({ ...prev, message: e.target.value }))}
                   rows="4"
                   className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500"
-                  placeholder="Enter alert message..."
+                  placeholder="Enter notification message..."
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Alert Type
+                    Notification Type
                   </label>
                   <select
                     value={alertForm.alertType}
                     onChange={(e) => setAlertForm(prev => ({ ...prev, alertType: e.target.value }))}
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500"
                   >
-                    <option value="MANUAL">Manual</option>
-                    <option value="WEATHER_UPDATE">Weather Update</option>
+                    <option value="INFO">General Info</option>
+                    <option value="WEATHER">Weather Update</option>
+                    <option value="FERTILIZER">Fertilizer Advisory</option>
                     <option value="ADVISORY">Advisory</option>
-                    <option value="EMERGENCY">Emergency</option>
+                    <option value="WARNING">Warning</option>
+                    <option value="CRITICAL">Critical Alert</option>
                   </select>
                 </div>
 
@@ -333,10 +354,10 @@ const AlertManagement = () => {
           </div>
         </div>
 
-        {/* Alert History */}
+        {/* Notification History */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Alert History</h2>
+            <h2 className="text-xl font-bold text-gray-800">Notification History</h2>
             
             {/* Filters */}
             <div className="flex gap-2">

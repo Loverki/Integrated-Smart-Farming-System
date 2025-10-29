@@ -7,26 +7,45 @@ const router = express.Router();
 // Apply authentication middleware to all routes
 router.use(protect);
 
-// GET all labours
+// GET all labours for the logged-in farmer
 router.get("/", async (req, res) => {
+  const farmer_id = req.farmer?.farmer_id;
+  
+  if (!farmer_id) {
+    return res.status(401).json({ message: "Unauthorized - farmer not found" });
+  }
+  
   let connection;
   try {
     connection = await getConnection();
+    
+    // Get labours that have worked on this farmer's farms
+    // OR get all available labours (for hiring new ones)
     const result = await connection.execute(
-      `SELECT 
-        labour_id,
-        name,
-        phone,
-        email,
-        skill as role,
-        hourly_rate,
-        (hourly_rate * 8) as daily_wage,
-        address,
-        hire_date,
-        status
-      FROM LABOUR
-      ORDER BY hire_date DESC`
+      `SELECT DISTINCT
+        l.labour_id,
+        l.name,
+        l.phone,
+        l.email,
+        l.skill,
+        l.hourly_rate,
+        (l.hourly_rate * 8) as daily_wage,
+        l.address,
+        l.hire_date,
+        l.status
+      FROM LABOUR l
+      WHERE l.labour_id IN (
+        SELECT DISTINCT lw.labour_id
+        FROM LABOURWORK lw
+        JOIN FARM f ON lw.farm_id = f.farm_id
+        WHERE f.farmer_id = :farmer_id
+      )
+      OR l.status = 'AVAILABLE'
+      ORDER BY l.hire_date DESC`,
+      { farmer_id }
     );
+    
+    console.log(`✅ Retrieved ${result.rows?.length || 0} labours for farmer ${farmer_id}`);
     res.json(result.rows || []);
   } catch (err) {
     console.error("Get labours error:", err);

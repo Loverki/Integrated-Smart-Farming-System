@@ -7,8 +7,14 @@ const router = express.Router();
 // Apply authentication middleware to all routes
 router.use(protect);
 
-// GET all labour work records with optional filters
+// GET all labour work records with optional filters (filtered by farmer)
 router.get("/", async (req, res) => {
+  const farmer_id = req.farmer?.farmer_id;
+  
+  if (!farmer_id) {
+    return res.status(401).json({ message: "Unauthorized - farmer not found" });
+  }
+  
   let connection;
   try {
     connection = await getConnection();
@@ -35,10 +41,10 @@ router.get("/", async (req, res) => {
       FROM LABOURWORK lw
       LEFT JOIN LABOUR l ON lw.labour_id = l.labour_id
       LEFT JOIN FARM f ON lw.farm_id = f.farm_id
-      WHERE 1=1
+      WHERE f.farmer_id = :farmer_id
     `;
     
-    const binds = {};
+    const binds = { farmer_id };
     
     if (status) {
       query += ` AND lw.status = :status`;
@@ -63,6 +69,7 @@ router.get("/", async (req, res) => {
     query += ` ORDER BY lw.work_date DESC, lw.created_date DESC`;
     
     const result = await connection.execute(query, binds);
+    console.log(`✅ Retrieved ${result.rows?.length || 0} labour work records for farmer ${farmer_id}`);
     res.json(result.rows || []);
   } catch (err) {
     console.error("Get labour work records error:", err);
@@ -72,8 +79,14 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET labour work summary statistics
+// GET labour work summary statistics (filtered by farmer)
 router.get("/summary", async (req, res) => {
+  const farmer_id = req.farmer?.farmer_id;
+  
+  if (!farmer_id) {
+    return res.status(401).json({ message: "Unauthorized - farmer not found" });
+  }
+  
   let connection;
   try {
     connection = await getConnection();
@@ -81,17 +94,20 @@ router.get("/summary", async (req, res) => {
     const summaryQuery = `
       SELECT 
         COUNT(*) as total_records,
-        SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) as pending_count,
-        SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count,
-        SUM(hours_worked) as total_hours,
-        SUM(CASE WHEN status = 'PENDING' THEN total_cost ELSE 0 END) as pending_payment,
-        SUM(CASE WHEN status = 'COMPLETED' THEN total_cost ELSE 0 END) as total_paid,
-        COUNT(DISTINCT labour_id) as active_labours
-      FROM LABOURWORK
+        SUM(CASE WHEN lw.status = 'PENDING' THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN lw.status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count,
+        SUM(lw.hours_worked) as total_hours,
+        SUM(CASE WHEN lw.status = 'PENDING' THEN lw.total_cost ELSE 0 END) as pending_payment,
+        SUM(CASE WHEN lw.status = 'COMPLETED' THEN lw.total_cost ELSE 0 END) as total_paid,
+        COUNT(DISTINCT lw.labour_id) as active_labours
+      FROM LABOURWORK lw
+      JOIN FARM f ON lw.farm_id = f.farm_id
+      WHERE f.farmer_id = :farmer_id
     `;
     
-    const result = await connection.execute(summaryQuery);
+    const result = await connection.execute(summaryQuery, { farmer_id });
     const summary = result.rows && result.rows.length > 0 ? result.rows[0] : {};
+    console.log(`✅ Retrieved labour work summary for farmer ${farmer_id}`);
     res.json(summary);
   } catch (err) {
     console.error("Get labour work summary error:", err);

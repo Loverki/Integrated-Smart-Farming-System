@@ -34,14 +34,25 @@ export const protect = async (req, res, next) => {
     await connection.close();
 
     if (!result.rows || result.rows.length === 0) {
-      return res.status(404).json({ message: 'Farmer account not found' });
+      console.log(`❌ Farmer ${decoded.farmer_id} NOT FOUND in database (deleted or never existed)`);
+      return res.status(401).json({ 
+        message: 'Your account no longer exists. Please register again.',
+        requiresLogin: true,
+        userDeleted: true
+      });
     }
 
     const farmer = result.rows[0];
     if (farmer.STATUS === 'INACTIVE') {
-      console.log(`Farmer ${decoded.farmer_id} is INACTIVE - blocking access`);
-      return res.status(403).json({ message: 'Admin has deactivated your account. Please contact support.' });
+      console.log(`❌ Farmer ${decoded.farmer_id} is INACTIVE - blocking access`);
+      return res.status(403).json({ 
+        message: 'Admin has deactivated your account. Please contact support.',
+        requiresLogin: true,
+        accountInactive: true
+      });
     }
+    
+    console.log(`✅ Farmer ${decoded.farmer_id} verified and ACTIVE`);
     
     req.farmer = decoded; // attach farmer info to request
     next();

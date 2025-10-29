@@ -39,14 +39,25 @@ export const protectAdmin = async (req, res, next) => {
     await connection.close();
 
     if (!result.rows || result.rows.length === 0) {
-      return res.status(404).json({ message: 'Admin account not found' });
+      console.log(`❌ Admin ${decoded.admin_id} NOT FOUND in database (deleted or never existed)`);
+      return res.status(401).json({ 
+        message: 'Admin account not found.',
+        requiresLogin: true,
+        userDeleted: true
+      });
     }
 
     const admin = result.rows[0];
     if (admin.STATUS !== 'ACTIVE') {
-      console.log(`Admin ${decoded.admin_id} is not ACTIVE - blocking access`);
-      return res.status(403).json({ message: 'Your admin account has been deactivated.' });
+      console.log(`❌ Admin ${decoded.admin_id} is not ACTIVE - blocking access`);
+      return res.status(403).json({ 
+        message: 'Your admin account has been deactivated.',
+        requiresLogin: true,
+        accountInactive: true
+      });
     }
+    
+    console.log(`✅ Admin ${decoded.admin_id} verified and ACTIVE`);
     
     // Attach admin info to request
     req.admin = decoded;

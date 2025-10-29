@@ -35,9 +35,11 @@ export default function AddSale() {
         const response = await axios.get("/farms");
         setFarms(response.data);
         
+        console.log("✅ Farms loaded for sales:", response.data);
         if (response.data && response.data.length > 0) {
           const firstFarm = response.data[0];
-          const farmId = firstFarm.FARM_ID || firstFarm.farm_id;
+          const farmId = firstFarm.farmId || firstFarm.FARM_ID || firstFarm.farm_id;
+          console.log("🏡 Auto-selecting farm for sales:", farmId);
           if (farmId) {
             setForm(prevForm => ({
               ...prevForm,
@@ -70,16 +72,17 @@ export default function AddSale() {
     if (form.farm_id && allCrops.length > 0) {
       const farmIdNum = parseInt(form.farm_id);
       const cropsForFarm = allCrops.filter(crop => {
-        const cropFarmId = crop.FARM_ID || crop.farm_id || crop[1];
+        const cropFarmId = crop.farm_id || crop.FARM_ID || crop[1];
         return parseInt(cropFarmId) === farmIdNum;
       });
+      console.log(`🌾 Filtered ${cropsForFarm.length} crops for farm ${farmIdNum}`);
       
       setFilteredCrops(cropsForFarm);
       
       // Reset crop selection if current crop doesn't belong to selected farm
       if (form.crop_id) {
         const currentCropValid = cropsForFarm.some(crop => {
-          const cropId = crop.CROP_ID || crop.crop_id || crop[0];
+          const cropId = crop.crop_id || crop.CROP_ID || crop[0];
           return cropId && cropId.toString() === form.crop_id;
         });
         
@@ -94,7 +97,7 @@ export default function AddSale() {
       // Auto-select first crop if only one available
       if (cropsForFarm.length === 1 && !form.crop_id) {
         const firstCrop = cropsForFarm[0];
-        const cropId = firstCrop.CROP_ID || firstCrop.crop_id || firstCrop[0];
+        const cropId = firstCrop.crop_id || firstCrop.CROP_ID || firstCrop[0];
         if (cropId) {
           setForm(prevForm => ({
             ...prevForm,
@@ -351,12 +354,13 @@ export default function AddSale() {
                     disabled={loading}
                   >
                     <option key="empty" value="">Select Farm</option>
-                    {farms.map((f) => {
-                      const farmId = f.FARM_ID || f.farm_id;
-                      const farmName = f.FARM_NAME || f.farm_name;
+                    {farms.map((f, index) => {
+                      const farmId = f.farmId || f.FARM_ID || f.farm_id;
+                      const farmName = f.farmName || f.FARM_NAME || f.farm_name;
+                      const location = f.location || f.LOCATION;
                       return (
-                        <option key={farmId} value={farmId}>
-                          {farmName}
+                        <option key={farmId || `farm-${index}`} value={farmId}>
+                          {farmName} {location ? `- ${location}` : ''}
                         </option>
                       );
                     })}
@@ -383,11 +387,11 @@ export default function AddSale() {
                         : 'Select Crop'}
                     </option>
                     {filteredCrops.map((c, index) => {
-                      const cropId = c.CROP_ID || c.crop_id || c[0];
-                      const cropName = c.CROP_NAME || c.crop_name || c[2];
-                      const cropType = c.CROP_TYPE || c.crop_type || c[3];
+                      const cropId = c.crop_id || c.CROP_ID || c[0];
+                      const cropName = c.crop_name || c.CROP_NAME || c[2];
+                      const cropType = c.crop_type || c.CROP_TYPE || c[3];
                       return (
-                        <option key={`${cropId}-${index}`} value={cropId}>
+                        <option key={cropId || `crop-${index}`} value={cropId}>
                           {cropName} ({cropType})
                         </option>
                       );

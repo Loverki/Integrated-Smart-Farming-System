@@ -28,9 +28,8 @@ router.post("/register", async (req, res) => {
       { phone }
     );
 
-    if (existingFarmer.rows && existingFarmer.rows.length > 0) {
+    if (existingFarmer.rows.length > 0) {
       await connection.close();
-      console.log("⚠️  Phone number already registered:", phone);
       return res.status(400).json({ 
         message: "Phone number already registered" 
       });
@@ -61,16 +60,8 @@ router.post("/register", async (req, res) => {
     }
 
     const newFarmer = farmerResult.rows[0];
-    
-    // Handle both array and object format
-    let farmerId, farmerName;
-    if (Array.isArray(newFarmer)) {
-      farmerId = newFarmer[0];
-      farmerName = newFarmer[1];
-    } else {
-      farmerId = newFarmer.FARMER_ID;
-      farmerName = newFarmer.NAME;
-    }
+    const farmerId = newFarmer[0];
+    const farmerName = newFarmer[1];
 
     console.log(`✅ Farmer registered successfully! ID: ${farmerId}, Name: ${farmerName}`);
 
@@ -131,46 +122,16 @@ router.post("/login", async (req, res) => {
       { phone }
     );
 
-    console.log("🔍 Query result:", {
-      rowCount: result.rows.length,
-      metaData: result.metaData?.map(col => col.name),
-      firstRow: result.rows[0]
-    });
-
     if (result.rows.length === 0) {
       await connection.close();
       return res.status(404).json({ message: "Farmer not found" });
     }
 
     const farmer = result.rows[0];
-    
-    // Handle both array and object format
-    let farmerId, farmerName, hashedPassword, status;
-    
-    if (Array.isArray(farmer)) {
-      // Array format
-      farmerId = farmer[0];
-      farmerName = farmer[1];
-      hashedPassword = farmer[2];
-      status = farmer[3];
-    } else {
-      // Object format
-      farmerId = farmer.FARMER_ID;
-      farmerName = farmer.NAME;
-      hashedPassword = farmer.PASSWORD;
-      status = farmer.STATUS;
-    }
-
-    console.log("👤 Login attempt for:", { farmerId, farmerName, hasPasswordSet: !!hashedPassword });
-
-    // Check if password is set
-    if (!hashedPassword) {
-      await connection.close();
-      console.error("❌ No password set for farmer:", farmerId);
-      return res.status(500).json({ 
-        message: "Account has no password set. Please contact administrator or register again." 
-      });
-    }
+    const farmerId = farmer[0];
+    const farmerName = farmer[1];
+    const hashedPassword = farmer[2];
+    const status = farmer[3];
 
     // Check if account is active
     if (status === 'INACTIVE') {
@@ -241,15 +202,7 @@ router.get("/verify", async (req, res) => {
 
     const farmer = result.rows[0];
     
-    // Handle both array and object format
-    let farmerStatus;
-    if (Array.isArray(farmer)) {
-      farmerStatus = farmer[3];
-    } else {
-      farmerStatus = farmer.STATUS;
-    }
-    
-    if (farmerStatus === 'INACTIVE') {
+    if (farmer[3] === 'INACTIVE') {
       return res.status(403).json({ 
         valid: false, 
         message: "Account is inactive",
@@ -257,27 +210,14 @@ router.get("/verify", async (req, res) => {
       });
     }
 
-    // Handle both array and object format
-    let farmerData;
-    if (Array.isArray(farmer)) {
-      farmerData = {
+    res.json({ 
+      valid: true, 
+      farmer: {
         farmerId: farmer[0],
         name: farmer[1],
         phone: farmer[2],
         status: farmer[3]
-      };
-    } else {
-      farmerData = {
-        farmerId: farmer.FARMER_ID,
-        name: farmer.NAME,
-        phone: farmer.PHONE,
-        status: farmer.STATUS
-      };
-    }
-
-    res.json({ 
-      valid: true, 
-      farmer: farmerData
+      }
     });
   } catch (err) {
     if (connection) await connection.close();

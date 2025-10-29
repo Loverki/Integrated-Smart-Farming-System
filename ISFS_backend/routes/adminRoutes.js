@@ -798,11 +798,11 @@ router.post("/recalculate-farmer-totals", protectAdmin, async (req, res) => {
   }
 });
 
-// ==================== WEATHER ALERT MANAGEMENT ENDPOINTS ====================
+// ==================== NOTIFICATION MANAGEMENT ENDPOINTS ====================
 
-// POST /admin/alerts/send - Send manual alert to specific farmers
+// POST /admin/alerts/send - Send notification to specific farmers
 router.post("/alerts/send", protectAdmin, async (req, res) => {
-  const { farmerIds, message, alertType, severity } = req.body;
+  const { farmerIds, message, title, alertType, severity } = req.body;
 
   if (!farmerIds || !Array.isArray(farmerIds) || farmerIds.length === 0) {
     return res.status(400).json({ message: "Farmer IDs array is required" });
@@ -813,34 +813,37 @@ router.post("/alerts/send", protectAdmin, async (req, res) => {
   }
 
   try {
-    // Import alert service
-    const { sendManualAlert } = await import('../services/alertService.js');
+    // Import simple notification service
+    const { sendBulkNotification } = await import('../services/simpleNotificationService.js');
     
-    const results = await sendManualAlert(
+    const results = sendBulkNotification(
       farmerIds, 
-      message, 
-      alertType || 'MANUAL',
-      severity || 'INFO'
+      {
+        title: title || alertType || 'Important Alert',
+        message,
+        type: alertType || 'INFO',
+        severity: severity || 'INFO'
+      }
     );
 
     res.json({
-      message: "Alerts sent successfully",
+      message: "Notifications sent successfully",
       results: results,
       totalSent: results.filter(r => r.success).length,
       totalFailed: results.filter(r => !r.success).length
     });
   } catch (error) {
-    console.error("Error sending manual alerts:", error);
+    console.error("Error sending notifications:", error);
     res.status(500).json({ 
-      message: "Failed to send alerts", 
+      message: "Failed to send notifications", 
       error: error.message 
     });
   }
 });
 
-// POST /admin/alerts/broadcast - Broadcast alert to all active farmers
+// POST /admin/alerts/broadcast - Broadcast notification to all active farmers
 router.post("/alerts/broadcast", protectAdmin, async (req, res) => {
-  const { message, alertType, severity } = req.body;
+  const { message, title, alertType, severity } = req.body;
 
   if (!message || message.trim() === '') {
     return res.status(400).json({ message: "Message is required" });
@@ -861,14 +864,17 @@ router.post("/alerts/broadcast", protectAdmin, async (req, res) => {
       return res.json({ message: "No active farmers found" });
     }
 
-    // Import alert service
-    const { sendManualAlert } = await import('../services/alertService.js');
+    // Import simple notification service
+    const { sendBulkNotification } = await import('../services/simpleNotificationService.js');
 
-    const results = await sendManualAlert(
+    const results = sendBulkNotification(
       farmerIds, 
-      message, 
-      alertType || 'BROADCAST',
-      severity || 'INFO'
+      {
+        title: title || 'Broadcast Message',
+        message,
+        type: alertType || 'BROADCAST',
+        severity: severity || 'INFO'
+      }
     );
 
     res.json({
@@ -879,9 +885,9 @@ router.post("/alerts/broadcast", protectAdmin, async (req, res) => {
       totalFailed: results.filter(r => !r.success).length
     });
   } catch (error) {
-    console.error("Error broadcasting alerts:", error);
+    console.error("Error broadcasting notifications:", error);
     res.status(500).json({ 
-      message: "Failed to broadcast alerts", 
+      message: "Failed to broadcast notifications", 
       error: error.message 
     });
   } finally {
@@ -889,90 +895,66 @@ router.post("/alerts/broadcast", protectAdmin, async (req, res) => {
   }
 });
 
-// GET /admin/alerts/history - View all sent alerts with filters
+// GET /admin/alerts/history - View all sent notifications
 router.get("/alerts/history", protectAdmin, async (req, res) => {
-  const { farmer_id, limit = 100, status, severity } = req.query;
+  const { limit = 100 } = req.query;
 
   let connection;
   try {
     connection = await getConnection();
 
-    let query = `
-      SELECT 
-        wa.alert_id, wa.farmer_id, wa.farm_id, wa.alert_type,
-        wa.weather_condition, DBMS_LOB.SUBSTR(wa.message, 4000, 1) as message,
-        wa.sent_via, wa.status, wa.severity, wa.created_date,
-        wa.sent_date, wa.is_read,
-        f.name as farmer_name, fm.farm_name
-      FROM WEATHER_ALERT wa
-      LEFT JOIN FARMER f ON wa.farmer_id = f.farmer_id
-      LEFT JOIN FARM fm ON wa.farm_id = fm.farm_id
-      WHERE 1=1
-    `;
+    // Import simple notification service
+    const { getAllNotifications } = await import('../services/simpleNotificationService.js');
+    
+    const allNotifications = getAllNotifications(parseInt(limit));
 
-    const binds = { limit: parseInt(limit) };
+    // Get farmer names for each notification
+    const notificationsWithNames = await Promise.all(
+      allNotifications.map(async (notification) => {
+        try {
+          const result = await connection.execute(
+            `SELECT name FROM FARMER WHERE farmer_id = :farmer_id`,
+            { farmer_id: notification.farmerId }
+          );
 
-    if (farmer_id) {
-      query += ` AND wa.farmer_id = :farmer_id`;
-      binds.farmer_id = parseInt(farmer_id);
-    }
-
-    if (status) {
-      query += ` AND wa.status = :status`;
-      binds.status = status;
-    }
-
-    if (severity) {
-      query += ` AND wa.severity = :severity`;
-      binds.severity = severity;
-    }
-
-    query += ` ORDER BY wa.created_date DESC FETCH FIRST :limit ROWS ONLY`;
-
-    const result = await connection.execute(query, binds);
-
-    const alerts = result.rows.map(row => ({
-      alertId: row[0],
-      farmerId: row[1],
-      farmId: row[2],
-      alertType: row[3],
-      weatherCondition: row[4],
-      message: row[5],
-      sentVia: row[6],
-      status: row[7],
-      severity: row[8],
-      createdDate: row[9],
-      sentDate: row[10],
-      isRead: row[11] === 1,
-      farmerName: row[12],
-      farmName: row[13]
-    }));
+          return {
+            ...notification,
+            farmerName: result.rows[0]?.[0] || 'Unknown',
+            alertId: notification.id,
+            alertType: notification.type,
+            status: 'SENT', // All in-memory notifications are sent
+            isRead: notification.read
+          };
+        } catch (error) {
+          return {
+            ...notification,
+            farmerName: 'Unknown',
+            alertId: notification.id,
+            alertType: notification.type,
+            status: 'SENT',
+            isRead: notification.read
+          };
+        }
+      })
+    );
 
     // Get statistics
-    const statsResult = await connection.execute(`
-      SELECT 
-        COUNT(*) as total_alerts,
-        SUM(CASE WHEN status = 'SENT' THEN 1 ELSE 0 END) as sent,
-        SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed,
-        SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END) as read_count
-      FROM WEATHER_ALERT
-    `);
-
-    const stats = {
-      totalAlerts: statsResult.rows[0][0],
-      sent: statsResult.rows[0][1],
-      failed: statsResult.rows[0][2],
-      readCount: statsResult.rows[0][3]
-    };
+    const { getStatistics } = await import('../services/simpleNotificationService.js');
+    const stats = getStatistics();
 
     res.json({
-      alerts: alerts,
-      statistics: stats
+      alerts: notificationsWithNames,
+      statistics: {
+        totalAlerts: stats.totalNotifications,
+        sent: stats.totalNotifications,
+        failed: 0,
+        readCount: stats.totalNotifications - stats.totalUnread
+      }
     });
   } catch (error) {
-    console.error("Error fetching alert history:", error);
+    console.error("Error fetching notification history:", error);
     res.status(500).json({ 
-      message: "Failed to fetch alert history", 
+      message: "Failed to fetch notification history", 
       error: error.message 
     });
   } finally {
@@ -980,43 +962,48 @@ router.get("/alerts/history", protectAdmin, async (req, res) => {
   }
 });
 
-// GET /admin/alerts/stats - Get alert statistics
+// GET /admin/alerts/stats - Get notification statistics
 router.get("/alerts/stats", protectAdmin, async (req, res) => {
-  let connection;
   try {
-    connection = await getConnection();
+    // Import simple notification service
+    const { getStatistics } = await import('../services/simpleNotificationService.js');
+    
+    const stats = getStatistics();
 
-    const result = await connection.execute(`
-      SELECT 
-        alert_type,
-        severity,
-        COUNT(*) as count,
-        SUM(CASE WHEN status = 'SENT' THEN 1 ELSE 0 END) as sent,
-        SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed,
-        SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END) as read_count
-      FROM WEATHER_ALERT
-      GROUP BY alert_type, severity
-      ORDER BY count DESC
-    `);
+    // Convert to array format expected by frontend
+    const statsArray = [];
 
-    const stats = result.rows.map(row => ({
-      alertType: row[0],
-      severity: row[1],
-      count: row[2],
-      sent: row[3],
-      failed: row[4],
-      readCount: row[5]
-    }));
+    // Add stats by type
+    Object.entries(stats.typeCounts || {}).forEach(([type, count]) => {
+      statsArray.push({
+        alertType: type,
+        severity: 'ALL',
+        count: count,
+        sent: count,
+        failed: 0,
+        readCount: 0 // We can't easily calculate this per type in memory
+      });
+    });
 
-    res.json(stats);
+    // If no stats, add a default entry
+    if (statsArray.length === 0) {
+      statsArray.push({
+        alertType: 'INFO',
+        severity: 'INFO',
+        count: 0,
+        sent: 0,
+        failed: 0,
+        readCount: 0
+      });
+    }
+
+    res.json(statsArray);
   } catch (error) {
-    console.error("Error fetching alert stats:", error);
+    console.error("Error fetching notification stats:", error);
     res.status(500).json({ 
-      message: "Failed to fetch alert statistics", 
+      message: "Failed to fetch notification statistics", 
       error: error.message 
     });
-  } finally {
-    if (connection) await connection.close();
   }
 });
 

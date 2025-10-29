@@ -49,20 +49,20 @@ router.get("/", async (req, res) => {
       { farmer_id }
     );
     
-    // Transform Oracle array format to object format
+    // Transform Oracle object format to camelCase
     const farms = result.rows.map(row => ({
-      farmId: row[0],
-      farmName: row[1],
-      location: row[2],
-      area: row[3],
-      soilType: row[4],
-      soilPh: row[5],
-      irrigationType: row[6],
-      farmType: row[7],
-      createdDate: row[8],
-      status: row[9],
-      cropCount: row[10],
-      totalRevenue: row[11]
+      farmId: row.FARM_ID,
+      farmName: row.FARM_NAME,
+      location: row.LOCATION,
+      area: row.AREA,
+      soilType: row.SOIL_TYPE,
+      soilPh: row.SOIL_PH,
+      irrigationType: row.IRRIGATION_TYPE,
+      farmType: row.FARM_TYPE,
+      createdDate: row.CREATED_DATE,
+      status: row.STATUS,
+      cropCount: row.CROP_COUNT,
+      totalRevenue: row.TOTAL_REVENUE
     }));
     
     console.log(`✅ Retrieved ${farms.length} farms for farmer ${farmer_id}`);

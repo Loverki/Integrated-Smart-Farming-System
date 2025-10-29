@@ -1,9 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import axios from "../api/axios";
 
 export default function DatabaseViews() {
   const navigate = useNavigate();
   const [selectedView, setSelectedView] = useState(null);
+  const [viewData, setViewData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Check if logged in
   useEffect(() => {
@@ -114,8 +118,23 @@ ORDER BY month DESC`,
     }
   ];
 
-  const selectView = (view) => {
+  const selectView = async (view) => {
     setSelectedView(view);
+    setViewData([]);
+    setError("");
+    
+    // Fetch data for the selected view
+    setLoading(true);
+    try {
+      const response = await axios.get(`/views/${view.id}`);
+      console.log(`📊 ${view.name} data:`, response.data);
+      setViewData(response.data);
+    } catch (err) {
+      console.error(`Error fetching ${view.name}:`, err);
+      setError(err.response?.data?.message || "Failed to load view data");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getColorClass = (color) => {
@@ -264,6 +283,71 @@ ORDER BY month DESC`,
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <h4 className="font-semibold text-blue-900 mb-2">View Purpose:</h4>
                     <p className="text-sm text-blue-800">{selectedView.description}</p>
+                  </div>
+
+                  {/* Data Table */}
+                  <div className="mt-6">
+                    <h4 className="font-semibold text-gray-900 mb-3">📊 View Data:</h4>
+                    
+                    {loading && (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+                        <p className="mt-2 text-sm text-gray-600">Loading data...</p>
+                      </div>
+                    )}
+                    
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                        {error}
+                      </div>
+                    )}
+                    
+                    {!loading && !error && viewData.length > 0 && (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 border rounded-lg">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              {selectedView.columns.map((col) => (
+                                <th
+                                  key={col}
+                                  className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-r"
+                                >
+                                  {col.replace(/_/g, ' ')}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {viewData.map((row, rowIndex) => (
+                              <tr key={rowIndex} className="hover:bg-gray-50">
+                                {selectedView.columns.map((col) => {
+                                  const value = row[col] ?? row[col.toLowerCase()] ?? '-';
+                                  return (
+                                    <td key={col} className="px-4 py-3 text-sm text-gray-900 border-r">
+                                      {typeof value === 'number' 
+                                        ? value.toLocaleString('en-IN', { 
+                                            maximumFractionDigits: 2,
+                                            minimumFractionDigits: col.includes('PRICE') || col.includes('COST') || col.includes('REVENUE') ? 2 : 0
+                                          })
+                                        : value}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <p className="mt-2 text-sm text-gray-600">
+                          Total records: <strong>{viewData.length}</strong>
+                        </p>
+                      </div>
+                    )}
+                    
+                    {!loading && !error && viewData.length === 0 && selectedView && (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg">
+                        <p className="text-gray-600">No data available for this view</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

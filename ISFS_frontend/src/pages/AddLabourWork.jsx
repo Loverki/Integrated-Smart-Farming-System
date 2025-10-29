@@ -233,11 +233,16 @@ const AddLabourWork = () => {
                 disabled={loading}
               >
                 <option value="">Select Farm</option>
-                {farms.map((farm, index) => (
-                  <option key={`farm-${farm.FARM_ID}-${index}`} value={farm.FARM_ID}>
-                    {farm.FARM_NAME} - {farm.LOCATION}
-                  </option>
-                ))}
+                {farms.map((farm, index) => {
+                  const farmId = farm.farmId || farm.FARM_ID || farm.farm_id;
+                  const farmName = farm.farmName || farm.FARM_NAME || farm.farm_name;
+                  const location = farm.location || farm.LOCATION;
+                  return (
+                    <option key={farmId || `farm-${index}`} value={farmId}>
+                      {farmName} {location ? `- ${location}` : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

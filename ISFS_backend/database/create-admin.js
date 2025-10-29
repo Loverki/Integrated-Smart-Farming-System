@@ -9,16 +9,9 @@ const adminUsers = [
   {
     username: "admin",
     email: "admin@isfs.com",
-    password: "admin123",
+    password: "admin",
     fullName: "System Administrator",
     role: "SUPER_ADMIN"
-  },
-  {
-    username: "manager",
-    email: "manager@isfs.com",
-    password: "manager123",
-    fullName: "System Manager",
-    role: "MANAGER"
   }
 ];
 

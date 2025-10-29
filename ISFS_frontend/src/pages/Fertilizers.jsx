@@ -127,7 +127,7 @@ export default function Fertilizers() {
                     const qty = fert.QUANTITY_USED || fert.quantity_used || fert[4];
                     const unit = fert.UNIT || fert.unit || fert[5];
                     const cost = fert.TOTAL_COST || fert.total_cost || fert[6];
-                    const date = fert.APPLIED_DATE || fert.applied_date || fert[7];
+                    const date = fert.APPLICATION_DATE || fert.application_date || fert.APPLIED_DATE || fert.applied_date || fert[7];
                     const rating = fert.EFFECTIVENESS_RATING || fert.effectiveness_rating || fert[8];
 
                     return (

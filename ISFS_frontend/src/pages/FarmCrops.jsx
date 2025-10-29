@@ -24,7 +24,7 @@ export default function FarmCrops() {
       const farmRes = await axios.get("/farms");
       const allFarms = farmRes.data;
       const currentFarm = allFarms.find(f => {
-        const fId = f.FARM_ID || f.farm_id || f[0];
+        const fId = f.farmId || f.FARM_ID || f.farm_id || f[0];
         return fId && fId.toString() === farmId;
       });
       

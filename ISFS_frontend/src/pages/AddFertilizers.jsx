@@ -297,12 +297,13 @@ export default function AddFertilizers() {
                     disabled={loading}
                   >
                     <option key="empty" value="">Select Farm</option>
-                    {farms.map((f) => {
-                      const farmId = f.FARM_ID || f.farm_id;
-                      const farmName = f.FARM_NAME || f.farm_name;
+                    {farms.map((f, index) => {
+                      const farmId = f.farmId || f.FARM_ID || f.farm_id;
+                      const farmName = f.farmName || f.FARM_NAME || f.farm_name;
+                      const location = f.location || f.LOCATION;
                       return (
-                        <option key={farmId} value={farmId}>
-                          {farmName}
+                        <option key={farmId || `farm-${index}`} value={farmId}>
+                          {farmName} {location ? `- ${location}` : ''}
                         </option>
                       );
                     })}

@@ -5,8 +5,9 @@ export default function AdminProtectedRoute({ children, requiredRole = null }) {
   const adminRole = localStorage.getItem("adminRole");
 
   // Check if admin is authenticated
+  // Redirect to home page if not logged in
   if (!adminToken) {
-    return <Navigate to="/admin-login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Check role if specified

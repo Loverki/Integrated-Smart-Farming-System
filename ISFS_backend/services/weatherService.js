@@ -121,26 +121,45 @@ export async function storeWeatherData(farmId, weatherData) {
  */
 export async function getCoordinatesFromLocation(location) {
   try {
+    console.log(`🌍 Fetching coordinates for location: "${location}"`);
+    
+    if (!OPENWEATHER_API_KEY) {
+      throw new Error('OpenWeatherMap API key is not configured. Please set OPENWEATHER_API_KEY in .env file');
+    }
+
+    // Add country code for better results (India)
+    const searchQuery = `${location},IN`;
+    
     const response = await axios.get(`https://api.openweathermap.org/geo/1.0/direct`, {
       params: {
-        q: location,
+        q: searchQuery,
         limit: 1,
         appid: OPENWEATHER_API_KEY
       }
     });
 
+    console.log(`📍 Geocoding response for "${searchQuery}":`, response.data);
+
     if (response.data.length === 0) {
-      throw new Error('Location not found');
+      console.error(`❌ Location "${location}" not found in OpenWeatherMap geocoding`);
+      throw new Error(`Location "${location}" not found. Please use a valid city name like "Kurnool", "Mumbai", "Delhi", etc.`);
     }
 
-    return {
+    const coords = {
       latitude: response.data[0].lat,
       longitude: response.data[0].lon
     };
+    
+    console.log(`✅ Coordinates found for ${location}: ${coords.latitude}, ${coords.longitude}`);
+    
+    return coords;
   } catch (error) {
-    console.error('Error getting coordinates:', error.message);
-    // Default coordinates (e.g., a central location)
-    return { latitude: 28.7041, longitude: 77.1025 }; // Delhi, India
+    console.error(`❌ Error getting coordinates for "${location}":`, error.message);
+    if (error.response) {
+      console.error('API Response:', error.response.status, error.response.data);
+    }
+    // Re-throw the error instead of using default coordinates
+    throw new Error(`Failed to get coordinates for location "${location}". Please check if the location name is valid.`);
   }
 }
 

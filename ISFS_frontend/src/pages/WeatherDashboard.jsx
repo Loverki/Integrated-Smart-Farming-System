@@ -30,22 +30,29 @@ const WeatherDashboard = () => {
     try {
       const response = await api.get('/farms');
       const farmsData = response.data;
+      console.log('🏡 Farms loaded for weather:', farmsData);
       setFarms(farmsData);
       if (farmsData.length > 0 && !selectedFarm) {
-        setSelectedFarm(farmsData[0].farmId);
+        const firstFarmId = farmsData[0].farmId || farmsData[0].FARM_ID || farmsData[0].farm_id;
+        console.log('🌤️ Auto-selecting farm for weather:', firstFarmId);
+        setSelectedFarm(firstFarmId);
       }
     } catch (error) {
       console.error('Error fetching farms:', error);
+      alert('Failed to load farms. Please refresh the page.');
     }
   };
 
   const fetchCurrentWeather = async (farmId) => {
     setLoading(true);
     try {
+      console.log(`🌦️ Fetching current weather for farm ${farmId}`);
       const response = await api.get(`/weather/current/${farmId}`);
+      console.log('✅ Weather data received:', response.data);
       setCurrentWeather(response.data);
     } catch (error) {
       console.error('Error fetching weather:', error);
+      alert('Failed to fetch weather data. Please check if your farm has a valid location.');
     } finally {
       setLoading(false);
     }
@@ -53,10 +60,13 @@ const WeatherDashboard = () => {
 
   const fetchForecast = async (farmId) => {
     try {
+      console.log(`📅 Fetching forecast for farm ${farmId}`);
       const response = await api.get(`/weather/forecast/${farmId}`);
+      console.log('✅ Forecast data received:', response.data);
       setForecast(response.data.forecast || []);
     } catch (error) {
       console.error('Error fetching forecast:', error);
+      // Don't alert here as it's not critical
     }
   };
 
@@ -152,11 +162,16 @@ const WeatherDashboard = () => {
               onChange={(e) => setSelectedFarm(Number(e.target.value))}
               className="w-full md:w-1/2 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500"
             >
-              {farms.map(farm => (
-                <option key={farm.farmId} value={farm.farmId}>
-                  {farm.farmName} - {farm.location}
-                </option>
-              ))}
+              {farms.map((farm, index) => {
+                const farmId = farm.farmId || farm.FARM_ID || farm.farm_id;
+                const farmName = farm.farmName || farm.FARM_NAME || farm.farm_name;
+                const location = farm.location || farm.LOCATION;
+                return (
+                  <option key={farmId || `farm-${index}`} value={farmId}>
+                    {farmName} {location ? `- ${location}` : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>

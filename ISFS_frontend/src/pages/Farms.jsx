@@ -22,8 +22,12 @@ export default function Farms() {
   const fetchFarms = async () => {
     try {
       const response = await axios.get("/farms");
-      // Filter to only show active farms (additional safety check)
-      const activeFarms = response.data.filter(farm => farm.STATUS === 'ACTIVE');
+      console.log("✅ Farms loaded:", response.data);
+      // Filter to only show active farms (check both uppercase and lowercase)
+      const activeFarms = response.data.filter(farm => 
+        (farm.status === 'ACTIVE' || farm.STATUS === 'ACTIVE')
+      );
+      console.log(`📊 Active farms: ${activeFarms.length} out of ${response.data.length}`);
       setFarms(activeFarms);
     } catch (err) {
       console.error("Error fetching farms:", err);
@@ -172,55 +176,66 @@ export default function Farms() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {farms.map((farm) => (
-              <div key={farm.FARM_ID} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-gray-900">{farm.FARM_NAME}</h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    farm.STATUS === 'ACTIVE' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {farm.STATUS}
-                  </span>
+            {farms.map((farm, index) => {
+              const farmId = farm.farmId || farm.FARM_ID || farm.farm_id;
+              const farmName = farm.farmName || farm.FARM_NAME || farm.farm_name;
+              const location = farm.location || farm.LOCATION;
+              const area = farm.area || farm.AREA;
+              const soilType = farm.soilType || farm.SOIL_TYPE || farm.soil_type;
+              const status = farm.status || farm.STATUS;
+              const cropCount = farm.cropCount || farm.CROP_COUNT || farm.crop_count || 0;
+              const totalRevenue = farm.totalRevenue || farm.TOTAL_REVENUE || farm.total_revenue || 0;
+              
+              return (
+                <div key={farmId || `farm-${index}`} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">{farmName}</h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      status === 'ACTIVE' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {status}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Location:</span>
+                      <span className="font-medium">{location}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Area:</span>
+                      <span className="font-medium">{area} acres</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Soil Type:</span>
+                      <span className="font-medium">{soilType}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Crops:</span>
+                      <span className="font-medium">{cropCount}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Revenue:</span>
+                      <span className="font-medium text-green-600">₹{totalRevenue.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <button
+                      onClick={() => navigate(`/farms/${farmId}/edit`)}
+                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-xl font-bold hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit Farm
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex justify-between">
-                    <span>Location:</span>
-                    <span className="font-medium">{farm.LOCATION}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Area:</span>
-                    <span className="font-medium">{farm.AREA} acres</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Soil Type:</span>
-                    <span className="font-medium">{farm.SOIL_TYPE}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Crops:</span>
-                    <span className="font-medium">{farm.CROP_COUNT || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Revenue:</span>
-                    <span className="font-medium text-green-600">${farm.TOTAL_REVENUE || 0}</span>
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <button
-                    onClick={() => navigate(`/farms/${farm.FARM_ID}/edit`)}
-                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-xl font-bold hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Edit Farm
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

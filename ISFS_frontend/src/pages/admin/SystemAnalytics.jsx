@@ -128,7 +128,7 @@ export default function SystemAnalytics() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">${overview.TOTAL_REVENUE}</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{(overview.TOTAL_REVENUE || 0).toLocaleString('en-IN')}</p>
                 </div>
                 <div className="text-3xl">💰</div>
               </div>
@@ -146,7 +146,7 @@ export default function SystemAnalytics() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Fertilizer Cost</p>
-                  <p className="text-2xl font-bold text-gray-900">${overview.TOTAL_FERTILIZER_COST}</p>
+                  <p className="text-2xl font-bold text-gray-900">₹{(overview.TOTAL_FERTILIZER_COST || 0).toLocaleString('en-IN')}</p>
                 </div>
                 <div className="text-3xl">🧪</div>
               </div>
@@ -180,7 +180,7 @@ export default function SystemAnalytics() {
                     <tr key={idx}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.MONTH}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-semibold">
-                        ${item.REVENUE}
+                        ₹{(item.REVENUE || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.SALES_COUNT}</td>
                     </tr>
@@ -211,7 +211,7 @@ export default function SystemAnalytics() {
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-sm font-medium text-gray-600">{crop.CROP_NAME}</p>
-                      <p className="text-xl font-bold text-green-600">${crop.TOTAL_REVENUE}</p>
+                      <p className="text-xl font-bold text-green-600">₹{(crop.TOTAL_REVENUE || 0).toLocaleString('en-IN')}</p>
                       <p className="text-xs text-gray-500">{crop.SALES_COUNT} sales</p>
                     </div>
                     <div className="text-2xl">🌾</div>
@@ -295,8 +295,8 @@ export default function SystemAnalytics() {
                     <div className="flex gap-4 text-xs text-gray-600 mt-1">
                       <span>🏡 {farmer.TOTAL_FARMS} farms</span>
                       <span>🌾 {farmer.TOTAL_CROPS} crops</span>
-                      <span>💰 ${farmer.TOTAL_REVENUE}</span>
-                      <span>📊 {farmer.TOTAL_YIELD} kg yield</span>
+                      <span>💰 ₹{(farmer.TOTAL_REVENUE || 0).toLocaleString('en-IN')}</span>
+                      <span>📊 {(farmer.TOTAL_YIELD || 0).toLocaleString('en-IN')} kg yield</span>
                     </div>
                   </div>
                 </div>

@@ -191,7 +191,7 @@ export default function FarmerManagement() {
                         {farmer.TOTAL_CROPS}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        ${farmer.TOTAL_REVENUE || 0}
+                        ₹{(farmer.TOTAL_REVENUE || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -295,7 +295,7 @@ export default function FarmerManagement() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Total Revenue</p>
-                    <p className="font-medium text-green-600">${selectedFarmer.total_revenue}</p>
+                    <p className="font-medium text-green-600">₹{(selectedFarmer.total_revenue || 0).toLocaleString('en-IN')}</p>
                   </div>
                 </div>
               </div>

@@ -43,6 +43,14 @@ const adminFeatures = [
     color: "bg-indigo-500",
     implemented: true,
     requiresSuperAdmin: true
+  },
+  {
+    name: "Sequence Management",
+    description: "Reset and synchronize database sequences with current data.",
+    icon: "🔢",
+    route: "/admin/sequences",
+    color: "bg-orange-500",
+    implemented: true
   }
 ];
 
@@ -180,7 +188,7 @@ export default function AdminDashboard() {
               />
               <StatCard
                 title="Total Revenue"
-                value={`$${adminStats.total_revenue || 0}`}
+                value={`₹${(adminStats.total_revenue || 0).toLocaleString('en-IN')}`}
                 icon="💰"
                 color="#059669"
                 subtitle="System-wide revenue"

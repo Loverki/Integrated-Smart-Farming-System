@@ -29,21 +29,32 @@ export default function AddCrop() {
     const fetchFarms = async () => {
       try {
         const response = await axios.get("/farms");
+        console.log("✅ Farms loaded:", response.data);
         setFarms(response.data);
         
         // Auto-select first farm if available
         if (response.data && response.data.length > 0) {
           const firstFarm = response.data[0];
-          const farmId = firstFarm.FARM_ID || firstFarm.farm_id;
+          console.log("🔍 First farm object:", firstFarm);
+          console.log("🔍 Farm keys:", Object.keys(firstFarm));
+          
+          const farmId = firstFarm.farmId || firstFarm.FARM_ID || firstFarm.farm_id;
+          const farmName = firstFarm.farmName || firstFarm.FARM_NAME || firstFarm.farm_name;
+          
+          console.log("🏡 Auto-selecting farm:", farmId, farmName);
+          
           if (farmId) {
             setForm(prevForm => ({
               ...prevForm,
               farm_id: farmId.toString()
             }));
           }
+        } else {
+          console.log("⚠️  No farms found. Please add a farm first.");
+          setError("No farms found. Please add a farm first at /add-farm");
         }
       } catch (err) {
-        console.error("Error fetching farms:", err);
+        console.error("❌ Error fetching farms:", err);
         setError("Failed to load farms. Please refresh the page.");
       }
     };
@@ -272,13 +283,14 @@ export default function AddCrop() {
                     required
                     disabled={loading}
                   >
-                  <option key="empty" value="">Select a farm</option>
-                  {farms.map((f) => {
-                    const farmId = f.FARM_ID || f.farm_id;
-                    const farmName = f.FARM_NAME || f.farm_name;
+                  <option value="">Select a farm</option>
+                  {farms.map((f, index) => {
+                    // Backend returns camelCase format
+                    const farmId = f.farmId || f.FARM_ID || f.farm_id;
+                    const farmName = f.farmName || f.FARM_NAME || f.farm_name;
                     return (
-                      <option key={farmId} value={farmId}>
-                        {farmName}
+                      <option key={farmId || `farm-${index}`} value={farmId}>
+                        {farmName} {f.location ? `- ${f.location}` : ''}
                       </option>
                     );
                   })}

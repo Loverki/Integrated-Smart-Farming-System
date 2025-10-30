@@ -14,6 +14,49 @@ function safeFarmerId(req) {
   return farmerId;
 }
 
+// GET current farmer's profile
+router.get("/profile", async (req, res) => {
+  const farmer_id = parseInt(req.farmer?.farmer_id);
+  
+  if (!farmer_id) {
+    return res.status(401).json({ message: "Unauthorized - No farmer ID" });
+  }
+
+  let connection;
+  try {
+    connection = await getConnection();
+    const result = await connection.execute(
+      `SELECT farmer_id, name, phone, email, address, reg_date, status, total_farms, total_area 
+       FROM FARMER WHERE farmer_id = :farmer_id`,
+      { farmer_id }
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Farmer not found" });
+    }
+
+    // Convert Oracle row to object
+    const farmer = {
+      farmer_id: result.rows[0][0],
+      name: result.rows[0][1],
+      phone: result.rows[0][2],
+      email: result.rows[0][3],
+      address: result.rows[0][4],
+      reg_date: result.rows[0][5],
+      status: result.rows[0][6],
+      total_farms: result.rows[0][7],
+      total_area: result.rows[0][8]
+    };
+
+    res.json(farmer);
+  } catch (err) {
+    console.error("Get farmer profile error:", err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    if (connection) await connection.close();
+  }
+});
+
 // GET all farmers
 router.get("/", async (req, res) => {
   let connection;
@@ -31,25 +74,90 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST a new farmer
-router.post("/", async (req, res) => {
-  const { name, phone, address } = req.body;
+// UPDATE farmer email only
+router.put("/profile", async (req, res) => {
+  const farmer_id = parseInt(req.farmer?.farmer_id);
+  
+  if (!farmer_id) {
+    return res.status(401).json({ message: "Unauthorized - No farmer ID" });
+  }
+
+  const { email } = req.body;
+
   let connection;
   try {
     connection = await getConnection();
-    await connection.execute(
-      `INSERT INTO Farmer(farmer_id, name, phone, address, reg_date) 
-       VALUES(FARMER_SEQ.NEXTVAL, :name, :phone, :address, SYSDATE)`,
-      { name, phone, address },
-      { autoCommit: true }
+
+    // Check if email is being changed and if it's already taken by another farmer
+    if (email && email.trim()) {
+      const emailCheckResult = await connection.execute(
+        `SELECT farmer_id FROM FARMER WHERE email = :email AND farmer_id != :farmer_id`,
+        { email: email.trim(), farmer_id }
+      );
+      
+      if (emailCheckResult.rows.length > 0) {
+        return res.status(400).json({ message: "Email is already registered to another farmer" });
+      }
+    }
+
+    // Update only email field
+    const updateQuery = `
+      UPDATE FARMER 
+      SET email = :email
+      WHERE farmer_id = :farmer_id
+    `;
+
+    await connection.execute(updateQuery, {
+      email: email ? email.trim() : null,
+      farmer_id
+    });
+
+    await connection.commit();
+
+    // Fetch updated profile
+    const result = await connection.execute(
+      `SELECT farmer_id, name, phone, email, address, reg_date, status, total_farms, total_area 
+       FROM FARMER WHERE farmer_id = :farmer_id`,
+      { farmer_id }
     );
-    res.json({ message: "Farmer added successfully" });
+
+    const updatedFarmer = {
+      farmer_id: result.rows[0][0],
+      name: result.rows[0][1],
+      phone: result.rows[0][2],
+      email: result.rows[0][3],
+      address: result.rows[0][4],
+      reg_date: result.rows[0][5],
+      status: result.rows[0][6],
+      total_farms: result.rows[0][7],
+      total_area: result.rows[0][8]
+    };
+
+    res.json({
+      message: "Email updated successfully",
+      farmer: updatedFarmer
+    });
   } catch (err) {
-    console.error("Add farmer error:", err);
+    console.error("Update farmer email error:", err);
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackErr) {
+        console.error("Rollback error:", rollbackErr);
+      }
+    }
     res.status(500).json({ error: err.message });
   } finally {
     if (connection) await connection.close();
   }
+});
+
+// POST a new farmer - DISABLED: Use /api/auth/register instead
+router.post("/", async (req, res) => {
+  // Farmers should only be created through registration endpoint
+  res.status(400).json({ 
+    error: "Direct farmer creation is disabled. Please use /api/auth/register endpoint instead." 
+  });
 });
 
 // Example: GET dashboard stats

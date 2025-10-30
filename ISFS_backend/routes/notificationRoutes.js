@@ -16,7 +16,7 @@ const router = express.Router();
  */
 router.get("/", async (req, res) => {
   try {
-    const farmerId = req.farmer.farmer_id;
+    const farmerId = parseInt(req.farmer.farmer_id);
     const { unreadOnly = 'false', limit = 50 } = req.query;
 
     const notifications = getNotifications(farmerId, {
@@ -44,7 +44,7 @@ router.get("/", async (req, res) => {
  */
 router.get("/unread-count", async (req, res) => {
   try {
-    const farmerId = req.farmer.farmer_id;
+    const farmerId = parseInt(req.farmer.farmer_id);
     const count = getUnreadCount(farmerId);
 
     res.json({
@@ -66,7 +66,7 @@ router.get("/unread-count", async (req, res) => {
  */
 router.put("/:id/read", async (req, res) => {
   try {
-    const farmerId = req.farmer.farmer_id;
+    const farmerId = parseInt(req.farmer.farmer_id);
     const notificationId = parseInt(req.params.id);
 
     const success = markAsRead(farmerId, notificationId);
@@ -97,7 +97,7 @@ router.put("/:id/read", async (req, res) => {
  */
 router.put("/read-all", async (req, res) => {
   try {
-    const farmerId = req.farmer.farmer_id;
+    const farmerId = parseInt(req.farmer.farmer_id);
     const count = markAllAsRead(farmerId);
 
     res.json({
@@ -120,7 +120,7 @@ router.put("/read-all", async (req, res) => {
  */
 router.delete("/:id", async (req, res) => {
   try {
-    const farmerId = req.farmer.farmer_id;
+    const farmerId = parseInt(req.farmer.farmer_id);
     const notificationId = parseInt(req.params.id);
 
     const success = deleteNotification(farmerId, notificationId);
@@ -151,7 +151,7 @@ router.delete("/:id", async (req, res) => {
  */
 router.delete("/", async (req, res) => {
   try {
-    const farmerId = req.farmer.farmer_id;
+    const farmerId = parseInt(req.farmer.farmer_id);
     const count = clearAllNotifications(farmerId);
 
     res.json({

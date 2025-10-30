@@ -5,7 +5,7 @@ const router = express.Router();
 
 // GET all crops for the logged-in farmer (optionally filtered by farm_id)
 router.get("/", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
   const { farm_id } = req.query; // Optional farm_id filter
 
   if (!farmer_id) {
@@ -117,7 +117,7 @@ router.post("/", async (req, res) => {
     notes,
   } = req.body;
 
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -220,7 +220,7 @@ router.post("/", async (req, res) => {
 // GET single crop by ID
 router.get("/:crop_id", async (req, res) => {
   const { crop_id } = req.params;
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -297,7 +297,7 @@ router.put("/:crop_id", async (req, res) => {
     notes,
   } = req.body;
 
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -399,7 +399,7 @@ router.put("/:crop_id", async (req, res) => {
 // DELETE a crop
 router.delete("/:crop_id", async (req, res) => {
   const { crop_id } = req.params;
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });

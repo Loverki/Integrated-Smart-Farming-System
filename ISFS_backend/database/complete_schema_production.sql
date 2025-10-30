@@ -546,7 +546,7 @@ BEGIN
     JOIN FARM f ON s.farm_id = f.farm_id
     WHERE f.farmer_id = p_farmer_id;
     
-    v_stats := 'Farms: ' || v_farms || ', Crops: ' || v_crops || ', Revenue: $' || v_revenue;
+    v_stats := 'Farms: ' || v_farms || ', Crops: ' || v_crops || ', Revenue: ₹' || v_revenue;
     
     RETURN v_stats;
 END;

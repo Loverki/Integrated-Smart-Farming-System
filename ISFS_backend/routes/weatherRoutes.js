@@ -17,7 +17,7 @@ router.use(protect);
 // GET /weather/current/:farm_id - Get current weather for a farm
 router.get('/current/:farm_id', async (req, res) => {
   const { farm_id } = req.params;
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   let connection;
   try {
@@ -59,7 +59,7 @@ router.get('/current/:farm_id', async (req, res) => {
 // GET /weather/forecast/:farm_id - Get 5-day forecast for a farm
 router.get('/forecast/:farm_id', async (req, res) => {
   const { farm_id } = req.params;
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   let connection;
   try {
@@ -97,7 +97,7 @@ router.get('/forecast/:farm_id', async (req, res) => {
 
 // GET /weather/alerts - Get farmer's weather alerts
 router.get('/alerts', async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
   const { limit = 50, unread_only = 'false' } = req.query;
 
   let connection;
@@ -153,7 +153,7 @@ router.get('/alerts', async (req, res) => {
 // PUT /weather/alerts/:alert_id/read - Mark alert as read
 router.put('/alerts/:alert_id/read', async (req, res) => {
   const { alert_id } = req.params;
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   let connection;
   try {
@@ -182,7 +182,7 @@ router.put('/alerts/:alert_id/read', async (req, res) => {
 
 // GET /weather/preferences - Get farmer's alert preferences
 router.get('/preferences', async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   let connection;
   try {
@@ -231,7 +231,7 @@ router.get('/preferences', async (req, res) => {
 
 // PUT /weather/preferences - Update farmer's alert preferences
 router.put('/preferences', async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
   const {
     smsEnabled,
     inAppEnabled,
@@ -318,7 +318,7 @@ router.put('/preferences', async (req, res) => {
 
 // POST /weather/refresh - Manually refresh weather data for all farms
 router.post('/refresh', async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   let connection;
   try {

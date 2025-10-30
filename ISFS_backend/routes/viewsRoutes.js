@@ -5,7 +5,7 @@ const router = express.Router();
 
 // GET all views data
 router.get("/all", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -123,7 +123,7 @@ router.get("/all", async (req, res) => {
 
 // GET FARMER_DASHBOARD view
 router.get("/farmer-dashboard", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -164,7 +164,7 @@ router.get("/farmer-dashboard", async (req, res) => {
 
 // GET FARM_PERFORMANCE view
 router.get("/farm-performance", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -213,7 +213,7 @@ router.get("/farm-performance", async (req, res) => {
 
 // GET CROP_ANALYTICS view
 router.get("/crop-analytics", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -252,7 +252,7 @@ router.get("/crop-analytics", async (req, res) => {
 
 // GET MONTHLY_REVENUE view
 router.get("/monthly-revenue", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });

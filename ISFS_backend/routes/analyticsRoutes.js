@@ -5,7 +5,7 @@ const router = express.Router();
 
 // GET comprehensive financial analytics
 router.get("/financial", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -94,7 +94,7 @@ router.get("/financial", async (req, res) => {
 
 // GET farm performance comparison
 router.get("/farm-comparison", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });

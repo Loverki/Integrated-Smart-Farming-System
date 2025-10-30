@@ -1,5 +1,5 @@
 import { getConnection } from '../database/connection.js';
-import { sendSMS, sendBulkSMS } from './smsService.js';
+import { sendSms } from './smsService.js';
 import { fetchCurrentWeather, getCoordinatesFromLocation, analyzeWeatherForAlerts } from './weatherService.js';
 
 /**
@@ -55,7 +55,7 @@ export async function createWeatherAlert(alertData) {
 
       if (farmerResult.rows.length > 0) {
         const phone = farmerResult.rows[0][0];
-        const smsResult = await sendSMS(phone, message);
+        const smsResult = await sendSms(phone, message);
 
         if (smsResult.success) {
           await connection.execute(

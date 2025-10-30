@@ -99,15 +99,15 @@ const DatabaseViewViz = () => (
       <div className="space-y-1">
         <div className="flex justify-between text-xs bg-white p-1.5 rounded">
           <span className="text-gray-600">Farm A</span>
-          <span className="text-green-600 font-semibold">$45,200</span>
+          <span className="text-green-600 font-semibold">₹45,200</span>
         </div>
         <div className="flex justify-between text-xs bg-white p-1.5 rounded">
           <span className="text-gray-600">Farm B</span>
-          <span className="text-green-600 font-semibold">$38,750</span>
+          <span className="text-green-600 font-semibold">₹38,750</span>
         </div>
         <div className="flex justify-between text-xs bg-white p-1.5 rounded">
           <span className="text-gray-600">Farm C</span>
-          <span className="text-green-600 font-semibold">$52,900</span>
+          <span className="text-green-600 font-semibold">₹52,900</span>
         </div>
       </div>
     </div>
@@ -129,15 +129,15 @@ const StoredProcedureViz = () => (
         <div className="grid grid-cols-3 gap-1 text-xs">
           <div className="bg-white p-1 rounded text-center">
             <div className="text-gray-500">Revenue</div>
-            <div className="font-semibold text-green-600">$50K</div>
+            <div className="font-semibold text-green-600">₹50K</div>
           </div>
           <div className="bg-white p-1 rounded text-center">
             <div className="text-gray-500">Costs</div>
-            <div className="font-semibold text-red-600">$12.5K</div>
+            <div className="font-semibold text-red-600">₹12.5K</div>
           </div>
           <div className="bg-white p-1 rounded text-center">
             <div className="text-gray-500">Profit</div>
-            <div className="font-semibold text-blue-600">$37.5K</div>
+            <div className="font-semibold text-blue-600">₹37.5K</div>
           </div>
         </div>
       </div>
@@ -381,6 +381,16 @@ export default function Dashboard() {
               <NotificationBell />
               
               <button
+                onClick={() => navigate("/edit-profile")}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2"
+                title="Add or update your email address"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span className="font-medium">Add/Edit Email</span>
+              </button>
+              <button
                 onClick={() => navigate("/analytics")}
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2"
               >
@@ -442,7 +452,7 @@ export default function Dashboard() {
               />
               <StatCard
                 title="Total Revenue"
-                value={`$${farmerStats.total_revenue || 0}`}
+                value={`₹${farmerStats.total_revenue || 0}`}
                 icon="💰"
                 color="#059669"
                 subtitle="Year-to-date earnings"
@@ -745,7 +755,7 @@ export default function Dashboard() {
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-4"></div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Sale recorded</p>
-                <p className="text-xs text-gray-500">500kg Rice sold for $1,250 - 1 day ago</p>
+                <p className="text-xs text-gray-500">500kg Rice sold for ₹1,250 - 1 day ago</p>
               </div>
             </div>
             <div className="flex items-center p-4 bg-gray-50 rounded-lg">
@@ -830,7 +840,7 @@ WHERE f.farmer_id = :farmer_id`}
                 </pre>
                 <div className="mt-3 bg-white p-3 rounded">
                   <span className="text-sm font-semibold text-gray-700">Result: </span>
-                  <span className="text-lg font-bold text-emerald-600">${farmerStats?.total_revenue || 0}</span>
+                  <span className="text-lg font-bold text-emerald-600">₹{farmerStats?.total_revenue || 0}</span>
                 </div>
               </div>
 

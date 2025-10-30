@@ -51,7 +51,7 @@ router.get("/farmer-stats/:farmerId", async (req, res) => {
     const farmerName = farmerResult.rows[0]?.NAME || 'Unknown';
 
     // Format result as string (mimicking the function output)
-    const statsString = `Farms: ${farmCount}, Crops: ${cropCount}, Revenue: $${parseFloat(totalRevenue).toLocaleString()}`;
+    const statsString = `Farms: ${farmCount}, Crops: ${cropCount}, Revenue: ₹${parseFloat(totalRevenue).toLocaleString()}`;
 
     res.json({
       farmer_id: parseInt(farmer_id),
@@ -74,7 +74,7 @@ router.get("/farmer-stats/:farmerId", async (req, res) => {
 
 // GET farmer statistics for current logged-in farmer (no parameter needed)
 router.get("/farmer-stats", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -119,7 +119,7 @@ router.get("/farmer-stats", async (req, res) => {
     const farmerName = farmerResult.rows[0]?.NAME || 'Unknown';
 
     // Format result as string (mimicking the function output)
-    const statsString = `Farms: ${farmCount}, Crops: ${cropCount}, Revenue: $${parseFloat(totalRevenue).toLocaleString()}`;
+    const statsString = `Farms: ${farmCount}, Crops: ${cropCount}, Revenue: ₹${parseFloat(totalRevenue).toLocaleString()}`;
 
     res.json({
       farmer_id: parseInt(farmer_id),

@@ -215,7 +215,7 @@ ORDER BY profit DESC`,
                   </div>
                   <div>
                     <div className="text-sm opacity-90">Revenue/Acre</div>
-                    <div className="text-xl font-bold">${bestFarm.revenue_per_acre || 0}</div>
+                    <div className="text-xl font-bold">₹{bestFarm.revenue_per_acre || 0}</div>
                   </div>
                 </div>
               </div>
@@ -339,23 +339,23 @@ ORDER BY profit DESC`,
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
-                          ${farm.revenue || 0}
+                          ₹{farm.revenue || 0}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">${totalCost.toFixed(2)}</div>
+                          <div className="text-sm text-gray-900">₹{totalCost.toFixed(2)}</div>
                           <div className="text-xs text-gray-500">
-                            F: ${farm.fertilizer_cost || 0} | L: ${farm.labour_cost || 0}
+                            F: ₹{farm.fertilizer_cost || 0} | L: ₹{farm.labour_cost || 0}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`text-sm font-bold ${
                             (farm.profit || 0) > 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            ${farm.profit || 0}
+                            ₹{farm.profit || 0}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-semibold">
-                          ${farm.revenue_per_acre || 0}
+                          ₹{farm.revenue_per_acre || 0}
                         </td>
                       </tr>
                     );
@@ -374,13 +374,13 @@ ORDER BY profit DESC`,
                 <div>
                   <div className="text-xs text-gray-600">Total Revenue</div>
                   <div className="text-lg font-bold text-green-600">
-                    ${farms.reduce((sum, f) => sum + (f.revenue || 0), 0).toFixed(2)}
+                    ₹{farms.reduce((sum, f) => sum + (f.revenue || 0), 0).toFixed(2)}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-600">Total Profit</div>
                   <div className="text-lg font-bold text-blue-600">
-                    ${farms.reduce((sum, f) => sum + (f.profit || 0), 0).toFixed(2)}
+                    ₹{farms.reduce((sum, f) => sum + (f.profit || 0), 0).toFixed(2)}
                   </div>
                 </div>
                 <div>

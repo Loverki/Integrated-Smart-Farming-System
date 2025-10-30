@@ -36,6 +36,70 @@ router.post("/register", async (req, res) => {
       });
     }
 
+    // CRITICAL: AUTO-RESET FARMER_SEQ BASED ON ACTUAL FARMER COUNT
+    // This ensures new farmers always get correct sequential IDs
+    try {
+      // Step 1: Count actual farmers in database
+      const countResult = await connection.execute(
+        `SELECT COUNT(*) AS farmer_count, NVL(MAX(farmer_id), 0) AS max_id FROM FARMER`
+      );
+      const farmerCount = countResult.rows[0][0];
+      const maxFarmerId = countResult.rows[0][1];
+      
+      console.log(`📊 Farmer database status:`, {
+        total_farmers: farmerCount,
+        max_farmer_id: maxFarmerId,
+        next_should_be: maxFarmerId + 1
+      });
+      
+      // Step 2: Check if sequence exists
+      const seqCheckResult = await connection.execute(`
+        SELECT COUNT(*) as seq_count 
+        FROM user_sequences 
+        WHERE sequence_name = 'FARMER_SEQ'
+      `);
+      const sequenceExists = seqCheckResult.rows[0][0] > 0;
+      
+      // Step 3: Always reset/create sequence to match actual data
+      if (sequenceExists) {
+        // Sequence exists - ALWAYS reset it to ensure correctness
+        console.log(`🔄 Resetting FARMER_SEQ to match actual data...`);
+        try {
+          // Try stored procedure first
+          await connection.execute(`BEGIN RESET_SEQUENCE('FARMER_SEQ'); END;`);
+          console.log(`✅ FARMER_SEQ reset via procedure to start from ${maxFarmerId + 1}`);
+        } catch (procError) {
+          // Procedure doesn't exist, manually reset
+          console.log("⚠️  RESET_SEQUENCE procedure not found, using manual reset");
+          await connection.execute(`DROP SEQUENCE FARMER_SEQ`);
+          await connection.execute(
+            `CREATE SEQUENCE FARMER_SEQ START WITH ${maxFarmerId + 1} INCREMENT BY 1 NOCACHE`
+          );
+          console.log(`✅ FARMER_SEQ manually recreated to start from ${maxFarmerId + 1}`);
+        }
+      } else {
+        // Sequence doesn't exist - create it
+        console.log(`⚠️  FARMER_SEQ doesn't exist, creating it...`);
+        await connection.execute(
+          `CREATE SEQUENCE FARMER_SEQ START WITH ${maxFarmerId + 1} INCREMENT BY 1 NOCACHE`
+        );
+        console.log(`✅ FARMER_SEQ created to start from ${maxFarmerId + 1}`);
+      }
+      
+      // Step 4: DON'T verify with NEXTVAL as it consumes a value!
+      // The sequence is set correctly to (maxFarmerId + 1)
+      console.log(`✅ FARMER_SEQ is ready - Next farmer will get ID: ${maxFarmerId + 1}`);
+      console.log(`   Total farmers in DB: ${farmerCount}, Max ID: ${maxFarmerId}`);
+      
+      // Important: We don't call NEXTVAL here to verify because that would consume
+      // a sequence value and cause the new farmer to get (maxFarmerId + 2) instead!
+      
+    } catch (seqError) {
+      console.log("⚠️  Sequence management failed:", seqError.message);
+      console.log("ℹ️  Continuing with registration (sequence might have gaps)");
+      // Continue anyway - sequence will just continue from current value
+    }
+
     // Insert new farmer (simple version)
     console.log("💾 Inserting new farmer...");
     await connection.execute(
@@ -123,19 +187,60 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   const { phone, password } = req.body;
 
+  console.log("🔐 Login attempt:", {
+    phone: phone,
+    phone_length: phone?.length,
+    phone_type: typeof phone,
+    password_provided: !!password
+  });
+
   let connection;
   try {
     connection = await getConnection();
+    
+    // First, let's see ALL farmers to debug
+    const allFarmers = await connection.execute(
+      `SELECT FARMER_ID, NAME, PHONE, STATUS FROM FARMER`
+    );
+    console.log("📊 All farmers in database:", allFarmers.rows.map(f => ({
+      id: f[0],
+      name: f[1],
+      phone: f[2],
+      phone_trimmed: f[2]?.trim(),
+      status: f[3]
+    })));
+    
+    // Try with exact match
     const result = await connection.execute(
       `SELECT FARMER_ID, NAME, PASSWORD, STATUS FROM FARMER WHERE PHONE = :phone`,
       { phone }
     );
 
-    console.log("🔍 Query result:", {
+    console.log("🔍 Query result (exact match):", {
+      phone_searched: phone,
       rowCount: result.rows.length,
       metaData: result.metaData?.map(col => col.name),
       firstRow: result.rows[0]
     });
+    
+    // If exact match fails, try with TRIM
+    if (result.rows.length === 0) {
+      console.log("⚠️  Exact match failed, trying with TRIM...");
+      const trimResult = await connection.execute(
+        `SELECT FARMER_ID, NAME, PASSWORD, STATUS FROM FARMER WHERE TRIM(PHONE) = TRIM(:phone)`,
+        { phone }
+      );
+      console.log("🔍 Query result (with TRIM):", {
+        rowCount: trimResult.rows.length,
+        firstRow: trimResult.rows[0]
+      });
+      
+      if (trimResult.rows.length > 0) {
+        console.log("✅ Found farmer with TRIM! Using trimmed result.");
+        result.rows = trimResult.rows;
+        result.metaData = trimResult.metaData;
+      }
+    }
 
     if (result.rows.length === 0) {
       await connection.close();
@@ -186,18 +291,24 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // Ensure farmer_id is a number for JWT token
+    const farmerIdNum = typeof farmerId === 'number' ? farmerId : parseInt(farmerId);
+
     const token = jwt.sign(
-      { farmer_id: farmerId, name: farmerName },
+      { farmer_id: farmerIdNum, name: farmerName },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
+    
+    console.log(`✅ Login successful for farmer ${farmerIdNum} (${farmerName})`);
+    console.log(`   farmer_id type in JWT: ${typeof farmerIdNum}`);
 
     await connection.close();
 
     res.json({
       message: "Login successful",
       token,
-      farmerId: farmerId,
+      farmerId: farmerIdNum,
       name: farmerName
     });
   } catch (err) {

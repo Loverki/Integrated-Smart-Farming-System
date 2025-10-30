@@ -9,7 +9,7 @@ router.use(protect);
 
 // GET all labour work records with optional filters (filtered by farmer)
 router.get("/", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
   
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -81,7 +81,7 @@ router.get("/", async (req, res) => {
 
 // GET labour work summary statistics (filtered by farmer)
 router.get("/summary", async (req, res) => {
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
   
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });

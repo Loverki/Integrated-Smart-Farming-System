@@ -812,11 +812,12 @@ router.post("/alerts/send", protectAdmin, async (req, res) => {
     return res.status(400).json({ message: "Message is required" });
   }
 
+  let connection;
   try {
     // Import simple notification service
     const { sendBulkNotification } = await import('../services/simpleNotificationService.js');
     
-    const results = sendBulkNotification(
+    const webResults = sendBulkNotification(
       farmerIds, 
       {
         title: title || alertType || 'Important Alert',
@@ -826,11 +827,36 @@ router.post("/alerts/send", protectAdmin, async (req, res) => {
       }
     );
 
+    // Fetch phones and send SMS
+    const { getConnection } = await import('../database/connection.js');
+    connection = await getConnection();
+    const phones = [];
+    for (const id of farmerIds) {
+      try {
+        const r = await connection.execute(
+          `SELECT phone FROM FARMER WHERE farmer_id = :id`,
+          { id }
+        );
+        const phone = r.rows?.[0]?.[0];
+        if (phone) phones.push(phone);
+      } catch (_) {}
+    }
+
+    const { sendBulkSms } = await import('../services/smsService.js');
+    const smsResults = await sendBulkSms(phones, message);
+
     res.json({
-      message: "Notifications sent successfully",
-      results: results,
-      totalSent: results.filter(r => r.success).length,
-      totalFailed: results.filter(r => !r.success).length
+      message: "Notifications processed",
+      web: {
+        totalSent: webResults.filter(r => r.success).length,
+        totalFailed: webResults.filter(r => !r.success).length
+      },
+      sms: {
+        totalAttempted: phones.length,
+        totalSent: smsResults.filter(r => r.success).length,
+        totalFailed: smsResults.filter(r => !r.success && !r.disabled).length,
+        disabled: smsResults.length > 0 ? smsResults.every(r => r.disabled) : false
+      }
     });
   } catch (error) {
     console.error("Error sending notifications:", error);
@@ -838,6 +864,8 @@ router.post("/alerts/send", protectAdmin, async (req, res) => {
       message: "Failed to send notifications", 
       error: error.message 
     });
+  } finally {
+    if (connection) await connection.close();
   }
 });
 
@@ -867,7 +895,7 @@ router.post("/alerts/broadcast", protectAdmin, async (req, res) => {
     // Import simple notification service
     const { sendBulkNotification } = await import('../services/simpleNotificationService.js');
 
-    const results = sendBulkNotification(
+    const webResults = sendBulkNotification(
       farmerIds, 
       {
         title: title || 'Broadcast Message',
@@ -877,12 +905,35 @@ router.post("/alerts/broadcast", protectAdmin, async (req, res) => {
       }
     );
 
+    // Fetch phones and send SMS
+    const phones = [];
+    for (const id of farmerIds) {
+      try {
+        const r = await connection.execute(
+          `SELECT phone FROM FARMER WHERE farmer_id = :id`,
+          { id }
+        );
+        const phone = r.rows?.[0]?.[0];
+        if (phone) phones.push(phone);
+      } catch (_) {}
+    }
+
+    const { sendBulkSms } = await import('../services/smsService.js');
+    const smsResults = await sendBulkSms(phones, message);
+
     res.json({
-      message: "Broadcast sent successfully",
+      message: "Broadcast processed",
       totalFarmers: farmerIds.length,
-      results: results,
-      totalSent: results.filter(r => r.success).length,
-      totalFailed: results.filter(r => !r.success).length
+      web: {
+        totalSent: webResults.filter(r => r.success).length,
+        totalFailed: webResults.filter(r => !r.success).length
+      },
+      sms: {
+        totalAttempted: phones.length,
+        totalSent: smsResults.filter(r => r.success).length,
+        totalFailed: smsResults.filter(r => !r.success && !r.disabled).length,
+        disabled: smsResults.length > 0 ? smsResults.every(r => r.disabled) : false
+      }
     });
   } catch (error) {
     console.error("Error broadcasting notifications:", error);

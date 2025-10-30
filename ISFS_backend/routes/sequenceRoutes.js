@@ -13,7 +13,7 @@ router.post("/reset/:sequenceName", protectAdmin, async (req, res) => {
   
   // Validate sequence name
   const validSequences = [
-    'FARMER_SEQ', 'FARM_SEQ', 'CROP_SEQ', 'LABOUR_SEQ', 
+    'FARM_SEQ', 'CROP_SEQ', 'LABOUR_SEQ', 
     'SALES_SEQ', 'EQUIPMENT_SEQ', 'FERTILIZER_SEQ', 'LABOUR_WORK_SEQ'
   ];
   
@@ -87,12 +87,6 @@ router.post("/reset-all", protectAdmin, async (req, res) => {
     
     // Get current sequence status
     const statusResult = await connection.execute(`
-      SELECT 
-        'FARMER' AS TABLE_NAME,
-        NVL(MAX(farmer_id), 0) AS CURRENT_MAX_ID,
-        NVL(MAX(farmer_id), 0) + 1 AS NEXT_SEQ_VALUE
-      FROM FARMER
-      UNION ALL
       SELECT 'FARM', NVL(MAX(farm_id), 0), NVL(MAX(farm_id), 0) + 1 FROM FARM
       UNION ALL
       SELECT 'CROP', NVL(MAX(crop_id), 0), NVL(MAX(crop_id), 0) + 1 FROM CROP
@@ -140,13 +134,6 @@ router.get("/status", protectAdmin, async (req, res) => {
     connection = await getConnection();
     
     const result = await connection.execute(`
-      SELECT 
-        'FARMER' AS TABLE_NAME,
-        'FARMER_SEQ' AS SEQUENCE_NAME,
-        (SELECT COUNT(*) FROM FARMER) AS RECORD_COUNT,
-        NVL(MAX(farmer_id), 0) AS MAX_ID
-      FROM FARMER
-      UNION ALL
       SELECT 'FARM', 'FARM_SEQ', (SELECT COUNT(*) FROM FARM), NVL(MAX(farm_id), 0) FROM FARM
       UNION ALL
       SELECT 'CROP', 'CROP_SEQ', (SELECT COUNT(*) FROM CROP), NVL(MAX(crop_id), 0) FROM CROP
@@ -185,50 +172,6 @@ router.get("/status", protectAdmin, async (req, res) => {
   }
 });
 
-/**
- * Auto-reset farmer sequence before registration
- * This ensures the next farmer gets the correct ID
- * POST /api/sequences/auto-reset-farmer
- */
-router.post("/auto-reset-farmer", async (req, res) => {
-  let connection;
-  try {
-    connection = await getConnection();
-    
-    // Get current farmer count and max ID
-    const result = await connection.execute(`
-      SELECT 
-        COUNT(*) AS FARMER_COUNT,
-        NVL(MAX(farmer_id), 0) AS MAX_FARMER_ID
-      FROM FARMER
-    `);
-    
-    const farmerCount = result.rows[0][0];
-    const maxFarmerId = result.rows[0][1];
-    
-    // Reset the sequence
-    await connection.execute(`BEGIN RESET_SEQUENCE('FARMER_SEQ'); END;`);
-    await connection.commit();
-    
-    res.json({
-      success: true,
-      message: "Farmer sequence reset automatically",
-      farmerCount,
-      maxFarmerId,
-      nextFarmerId: maxFarmerId + 1
-    });
-    
-  } catch (error) {
-    console.error("Error auto-resetting farmer sequence:", error);
-    res.status(500).json({ 
-      success: false,
-      message: "Failed to auto-reset farmer sequence",
-      error: error.message 
-    });
-  } finally {
-    if (connection) await connection.close();
-  }
-});
 
 export default router;
 

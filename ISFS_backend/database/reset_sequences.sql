@@ -4,25 +4,7 @@
 -- This script resets all sequences to match the current data in tables
 -- Run this whenever you need to synchronize sequences with actual data
 
--- 1. RESET FARMER SEQUENCE
-DECLARE
-  v_max_farmer_id NUMBER;
-  v_sql VARCHAR2(200);
-BEGIN
-  -- Get the maximum farmer ID currently in the table
-  SELECT NVL(MAX(farmer_id), 0) INTO v_max_farmer_id FROM FARMER;
-  
-  -- Drop and recreate the sequence starting from max_id + 1
-  EXECUTE IMMEDIATE 'DROP SEQUENCE FARMER_SEQ';
-  
-  v_sql := 'CREATE SEQUENCE FARMER_SEQ START WITH ' || TO_CHAR(v_max_farmer_id + 1) || ' INCREMENT BY 1 NOCACHE';
-  EXECUTE IMMEDIATE v_sql;
-  
-  DBMS_OUTPUT.PUT_LINE('✅ FARMER_SEQ reset to start from ' || TO_CHAR(v_max_farmer_id + 1));
-END;
-/
-
--- 2. RESET FARM SEQUENCE
+-- 1. RESET FARM SEQUENCE
 DECLARE
   v_max_farm_id NUMBER;
   v_sql VARCHAR2(200);
@@ -106,12 +88,6 @@ END;
 SELECT 'All sequences have been reset successfully!' AS STATUS FROM DUAL;
 
 -- Show current max IDs and what the next sequence values should be
-SELECT 
-  'FARMER' AS TABLE_NAME,
-  NVL(MAX(farmer_id), 0) AS CURRENT_MAX_ID,
-  NVL(MAX(farmer_id), 0) + 1 AS NEXT_SEQUENCE_VALUE
-FROM FARMER
-UNION ALL
 SELECT 
   'FARM' AS TABLE_NAME,
   NVL(MAX(farm_id), 0) AS CURRENT_MAX_ID,

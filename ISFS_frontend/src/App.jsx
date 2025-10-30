@@ -42,6 +42,7 @@ import AlertPreferences from "./pages/AlertPreferences";
 import AlertManagement from "./pages/admin/AlertManagement";
 import Notifications from "./pages/Notifications";
 import SequenceManagement from "./pages/admin/SequenceManagement";
+import EditProfile from "./pages/EditProfile";
 
 function App() {
   return (
@@ -59,6 +60,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/edit-profile"
+          element={
+            <ProtectedRoute>
+              <EditProfile />
             </ProtectedRoute>
           }
         />

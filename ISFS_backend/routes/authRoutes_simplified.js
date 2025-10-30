@@ -35,6 +35,42 @@ router.post("/register", async (req, res) => {
       });
     }
 
+    // AUTO-RESET FARMER_SEQ to match current farmer count
+    try {
+      const countResult = await connection.execute(
+        `SELECT NVL(MAX(farmer_id), 0) AS max_id FROM FARMER`
+      );
+      const maxFarmerId = countResult.rows[0][0];
+      
+      // Check if sequence exists
+      const seqCheckResult = await connection.execute(`
+        SELECT COUNT(*) as seq_count 
+        FROM user_sequences 
+        WHERE sequence_name = 'FARMER_SEQ'
+      `);
+      const sequenceExists = seqCheckResult.rows[0][0] > 0;
+      
+      if (sequenceExists) {
+        try {
+          await connection.execute(`BEGIN RESET_SEQUENCE('FARMER_SEQ'); END;`);
+          console.log(`✅ FARMER_SEQ reset to ${maxFarmerId + 1}`);
+        } catch (procError) {
+          await connection.execute(`DROP SEQUENCE FARMER_SEQ`);
+          await connection.execute(
+            `CREATE SEQUENCE FARMER_SEQ START WITH ${maxFarmerId + 1} INCREMENT BY 1 NOCACHE`
+          );
+          console.log(`✅ FARMER_SEQ manually reset to ${maxFarmerId + 1}`);
+        }
+      } else {
+        await connection.execute(
+          `CREATE SEQUENCE FARMER_SEQ START WITH ${maxFarmerId + 1} INCREMENT BY 1 NOCACHE`
+        );
+        console.log(`✅ FARMER_SEQ created to start from ${maxFarmerId + 1}`);
+      }
+    } catch (seqError) {
+      console.log("⚠️  Sequence management warning:", seqError.message);
+    }
+
     // Insert new farmer (simple version)
     console.log("💾 Inserting new farmer...");
     await connection.execute(

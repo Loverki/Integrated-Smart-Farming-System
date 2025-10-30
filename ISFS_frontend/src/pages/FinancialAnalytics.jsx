@@ -74,7 +74,7 @@ JOIN FARM f ON s.farm_id = f.farm_id
 WHERE f.farmer_id = :farmer_id`,
           status: "success",
           description: "Total Revenue from Sales",
-          result: `Revenue: $${response.data.revenue?.total || 0}`
+          result: `Revenue: ₹${response.data.revenue?.total || 0}`
         },
         {
           type: "Cost Queries",
@@ -91,7 +91,7 @@ JOIN FARM f ON lw.farm_id = f.farm_id
 WHERE f.farmer_id = :farmer_id`,
           status: "success",
           description: "Total Operating Costs",
-          result: `Fertilizer: $${response.data.costs?.fertilizer || 0}, Labour: $${response.data.costs?.labour || 0}`
+          result: `Fertilizer: ₹${response.data.costs?.fertilizer || 0}, Labour: ₹${response.data.costs?.labour || 0}`
         },
         {
           type: "Investment Query",
@@ -102,7 +102,7 @@ FROM EQUIPMENT e
 WHERE e.farmer_id = :farmer_id`,
           status: "success",
           description: "Equipment Investment",
-          result: `Investment: $${response.data.investment?.equipment || 0}, Current Value: $${response.data.investment?.equipment_current_value || 0}`
+          result: `Investment: ₹${response.data.investment?.equipment || 0}, Current Value: ₹${response.data.investment?.equipment_current_value || 0}`
         },
         {
           type: "Profit Calculation",
@@ -112,7 +112,7 @@ WHERE e.farmer_id = :farmer_id`,
 -- roi = (profit / investment) * 100`,
           status: "success",
           description: "Profit Metrics Calculation",
-          result: `Profit: $${response.data.profit?.net || 0}, Margin: ${response.data.profit?.margin || 0}%, ROI: ${response.data.profit?.roi || 0}%`,
+          result: `Profit: ₹${response.data.profit?.net || 0}, Margin: ${response.data.profit?.margin || 0}%, ROI: ${response.data.profit?.roi || 0}%`,
           time: endTime - startTime
         }
       ]);
@@ -185,7 +185,7 @@ WHERE e.farmer_id = :farmer_id`,
                 <div className="text-xs text-gray-600">{fertilizerPercent}% of total costs</div>
               </div>
             </div>
-            <div className="text-lg font-bold text-purple-600">${data.costs.fertilizer || 0}</div>
+            <div className="text-lg font-bold text-purple-600">₹{data.costs.fertilizer || 0}</div>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
@@ -196,13 +196,13 @@ WHERE e.farmer_id = :farmer_id`,
                 <div className="text-xs text-gray-600">{labourPercent}% of total costs</div>
               </div>
             </div>
-            <div className="text-lg font-bold text-blue-600">${data.costs.labour || 0}</div>
+            <div className="text-lg font-bold text-blue-600">₹{data.costs.labour || 0}</div>
           </div>
 
           <div className="border-t-2 border-gray-200 pt-3 mt-3">
             <div className="flex items-center justify-between">
               <div className="font-bold text-gray-900">Total Operating Costs</div>
-              <div className="text-xl font-bold text-gray-900">${totalCosts.toFixed(2)}</div>
+              <div className="text-xl font-bold text-gray-900">₹{totalCosts.toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -224,7 +224,7 @@ WHERE e.farmer_id = :farmer_id`,
           <div className="text-center">
             <div className="text-sm text-gray-600 mb-2">Net Profit</div>
             <div className={`text-4xl font-bold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
-              ${Math.abs(data.profit.net || 0).toFixed(2)}
+              ₹{Math.abs(data.profit.net || 0).toFixed(2)}
             </div>
             <div className={`text-sm mt-2 ${isProfitable ? 'text-green-700' : 'text-red-700'}`}>
               {isProfitable ? '✓ Profitable' : '⚠ Loss'}
@@ -236,17 +236,17 @@ WHERE e.farmer_id = :farmer_id`,
         <div className="space-y-2 text-sm">
           <div className="flex justify-between items-center p-2 bg-green-50 rounded">
             <span className="text-gray-700">Revenue</span>
-            <span className="font-semibold text-green-700">+${data.revenue.total || 0}</span>
+            <span className="font-semibold text-green-700">+₹{data.revenue.total || 0}</span>
           </div>
           <div className="flex justify-between items-center p-2 bg-red-50 rounded">
             <span className="text-gray-700">Operating Costs</span>
-            <span className="font-semibold text-red-700">-${data.costs.total.toFixed(2)}</span>
+            <span className="font-semibold text-red-700">-₹{data.costs.total.toFixed(2)}</span>
           </div>
           <div className="border-t-2 border-gray-200 my-2"></div>
           <div className="flex justify-between items-center p-2 bg-gray-100 rounded font-bold">
             <span className="text-gray-900">Net Profit</span>
             <span className={isProfitable ? 'text-green-700' : 'text-red-700'}>
-              ${data.profit.net || 0}
+              ₹{data.profit.net || 0}
             </span>
           </div>
         </div>
@@ -344,29 +344,29 @@ WHERE e.farmer_id = :farmer_id`,
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <MetricCard
                 title="Total Revenue"
-                value={`$${financialData.revenue.total || 0}`}
+                value={`₹${financialData.revenue.total || 0}`}
                 subtitle="From crop sales"
                 icon="💵"
                 color="#10B981"
               />
               <MetricCard
                 title="Operating Costs"
-                value={`$${financialData.costs.total.toFixed(2)}`}
+                value={`₹${financialData.costs.total.toFixed(2)}`}
                 subtitle="Fertilizer + Labour"
                 icon="💸"
                 color="#EF4444"
               />
               <MetricCard
                 title="Net Profit"
-                value={`$${financialData.profit.net || 0}`}
+                value={`₹${financialData.profit.net || 0}`}
                 subtitle={financialData.profit.net > 0 ? 'Profitable' : 'Loss'}
                 icon={financialData.profit.net > 0 ? "✅" : "⚠️"}
                 color={financialData.profit.net > 0 ? "#10B981" : "#EF4444"}
               />
               <MetricCard
                 title="Equipment Investment"
-                value={`$${financialData.investment.equipment || 0}`}
-                subtitle={`Current value: $${financialData.investment.equipment_current_value || 0}`}
+                value={`₹${financialData.investment.equipment || 0}`}
+                subtitle={`Current value: ₹${financialData.investment.equipment_current_value || 0}`}
                 icon="🔧"
                 color="#8B5CF6"
               />
@@ -385,17 +385,17 @@ WHERE e.farmer_id = :farmer_id`,
                 <div className="bg-purple-50 p-4 rounded-lg text-center">
                   <div className="text-2xl mb-2">🧪</div>
                   <div className="text-sm text-gray-600">Fertilizer Investment</div>
-                  <div className="text-xl font-bold text-purple-600">${financialData.costs.fertilizer || 0}</div>
+                  <div className="text-xl font-bold text-purple-600">₹{financialData.costs.fertilizer || 0}</div>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg text-center">
                   <div className="text-2xl mb-2">👥</div>
                   <div className="text-sm text-gray-600">Labour Investment</div>
-                  <div className="text-xl font-bold text-blue-600">${financialData.costs.labour || 0}</div>
+                  <div className="text-xl font-bold text-blue-600">₹{financialData.costs.labour || 0}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg text-center">
                   <div className="text-2xl mb-2">🔧</div>
                   <div className="text-sm text-gray-600">Equipment Investment</div>
-                  <div className="text-xl font-bold text-gray-600">${financialData.investment.equipment || 0}</div>
+                  <div className="text-xl font-bold text-gray-600">₹{financialData.investment.equipment || 0}</div>
                 </div>
               </div>
 
@@ -404,7 +404,7 @@ WHERE e.farmer_id = :farmer_id`,
                   <div>
                     <div className="text-sm text-gray-600">Total Investment</div>
                     <div className="text-2xl font-bold text-gray-900">
-                      ${financialData.investment.total.toFixed(2)}
+                      ₹{financialData.investment.total.toFixed(2)}
                     </div>
                   </div>
                   <div className="text-right">

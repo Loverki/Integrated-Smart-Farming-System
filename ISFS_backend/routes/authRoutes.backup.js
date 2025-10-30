@@ -31,29 +31,40 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Phone number already registered" });
     }
 
-    // AUTO-RESET FARMER SEQUENCE TO ENSURE CORRECT ID (OPTIONAL)
-    // This ensures the sequence starts from the correct number based on existing farmers
-    // NOTE: This requires the RESET_SEQUENCE procedure to exist in the database
-    // If the procedure doesn't exist, registration will still work fine
+    // AUTO-RESET FARMER_SEQ to match current farmer count
     try {
-      // Check if procedure exists first
-      const procCheck = await connection.execute(
-        `SELECT COUNT(*) as count FROM user_objects WHERE object_type = 'PROCEDURE' AND object_name = 'RESET_SEQUENCE'`
+      const countResult = await connection.execute(
+        `SELECT NVL(MAX(farmer_id), 0) AS max_id FROM FARMER`
       );
+      const maxFarmerId = countResult.rows[0][0];
       
-      if (procCheck.rows[0][0] > 0) {
-        // Procedure exists, use it
-        await connection.execute(`BEGIN RESET_SEQUENCE('FARMER_SEQ'); END;`);
-        await connection.commit();
-        console.log("✅ Farmer sequence auto-reset before registration");
+      // Check if sequence exists
+      const seqCheckResult = await connection.execute(`
+        SELECT COUNT(*) as seq_count 
+        FROM user_sequences 
+        WHERE sequence_name = 'FARMER_SEQ'
+      `);
+      const sequenceExists = seqCheckResult.rows[0][0] > 0;
+      
+      if (sequenceExists) {
+        try {
+          await connection.execute(`BEGIN RESET_SEQUENCE('FARMER_SEQ'); END;`);
+          console.log(`✅ FARMER_SEQ reset to ${maxFarmerId + 1}`);
+        } catch (procError) {
+          await connection.execute(`DROP SEQUENCE FARMER_SEQ`);
+          await connection.execute(
+            `CREATE SEQUENCE FARMER_SEQ START WITH ${maxFarmerId + 1} INCREMENT BY 1 NOCACHE`
+          );
+          console.log(`✅ FARMER_SEQ manually reset to ${maxFarmerId + 1}`);
+        }
       } else {
-        console.log("ℹ️  RESET_SEQUENCE procedure not found - skipping auto-reset (this is optional)");
-        console.log("💡 To enable auto-reset, run: @ISFS_backend/database/create_reset_sequence_procedure.sql");
+        await connection.execute(
+          `CREATE SEQUENCE FARMER_SEQ START WITH ${maxFarmerId + 1} INCREMENT BY 1 NOCACHE`
+        );
+        console.log(`✅ FARMER_SEQ created to start from ${maxFarmerId + 1}`);
       }
     } catch (seqError) {
-      console.log("⚠️  Sequence reset failed:", seqError.message);
-      console.log("ℹ️  Continuing with registration anyway (sequence reset is optional)");
-      // Continue with registration even if sequence reset fails
+      console.log("⚠️  Sequence management warning:", seqError.message);
     }
 
     // Insert farmer

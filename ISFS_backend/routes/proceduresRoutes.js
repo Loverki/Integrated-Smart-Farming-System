@@ -7,7 +7,7 @@ const router = express.Router();
 // POST - Calculate farm profitability
 router.post("/calculate-profitability", async (req, res) => {
   const { farm_id } = req.body;
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });
@@ -79,7 +79,7 @@ router.post("/calculate-profitability", async (req, res) => {
 // POST - Update crop status
 router.post("/update-crop-status", async (req, res) => {
   const { crop_id, new_status, actual_yield, actual_harvest_date } = req.body;
-  const farmer_id = req.farmer?.farmer_id;
+  const farmer_id = parseInt(req.farmer?.farmer_id);
 
   if (!farmer_id) {
     return res.status(401).json({ message: "Unauthorized - farmer not found" });

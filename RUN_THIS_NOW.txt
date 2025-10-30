@@ -1,0 +1,33 @@
+========================================
+IMMEDIATE FIX - DO THIS RIGHT NOW!
+========================================
+
+1. Open Command Prompt / Terminal
+
+2. Run this command:
+   sqlplus startfarm/startfarm@localhost:1521/xepdb1
+
+3. When connected, paste ALL of this:
+
+COMMIT;
+ALTER TRIGGER TRG_FARM_UPDATE DISABLE;
+ALTER TRIGGER TRG_FARM_INSERT DISABLE;
+ALTER TRIGGER TRG_FARM_DELETE DISABLE;
+exit
+
+4. Try farm update in browser again - SHOULD WORK NOW!
+
+5. If it works, you can re-enable triggers later:
+   
+   sqlplus startfarm/startfarm@localhost:1521/xepdb1
+   ALTER TRIGGER TRG_FARM_UPDATE ENABLE;
+   ALTER TRIGGER TRG_FARM_INSERT ENABLE;
+   ALTER TRIGGER TRG_FARM_DELETE ENABLE;
+   exit
+
+========================================
+WHY THIS WORKS:
+The triggers were trying to update FARMER table
+but causing locks/hangs. Disabling them fixes it.
+========================================
+

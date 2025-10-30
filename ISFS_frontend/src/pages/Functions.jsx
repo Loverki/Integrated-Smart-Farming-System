@@ -58,7 +58,7 @@ DECLARE
 BEGIN
   v_result := GET_FARMER_STATS(p_farmer_id => 1);
   DBMS_OUTPUT.PUT_LINE(v_result);
-  -- Output: Farms: 3, Crops: 12, Revenue: $45200
+  -- Output: Farms: 3, Crops: 12, Revenue: ₹45200
 END;`,
     concepts: [
       'RETURN clause (required)',
@@ -70,7 +70,7 @@ END;`,
       'String concatenation (||)',
       'Can be used in SELECT statements'
     ],
-    output: 'Farms: 3, Crops: 12, Revenue: $45200'
+    output: 'Farms: 3, Crops: 12, Revenue: ₹45200'
   };
 
   return (

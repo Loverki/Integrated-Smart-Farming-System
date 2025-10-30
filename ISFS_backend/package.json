@@ -21,6 +21,6 @@
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
     "oracledb": "^6.9.0",
-    "twilio": "^4.20.0"
+    "twilio": "^4.23.0"
   }
 }

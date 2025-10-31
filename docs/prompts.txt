@@ -1,0 +1,68 @@
+Project: Integrated Smart Farming System (ISFS)
+
+Goal:
+- Full-stack Oracle + Node.js + React platform for farm operations, sensor telemetry, automated alerts, and admin analytics.
+
+Core Features:
+- Farmer onboarding (JWT), role-based access (farmer/admin).
+- CRUD: Farms, Crops, Labour, Labour Work, Equipment, Fertilizers, Sales.
+- Sensor readings: TEMPERATURE, HUMIDITY, SOIL_MOISTURE, SOIL_PH, LIGHT.
+- Per-farmer thresholds with defaults; automated alert logging (in-app; optional SMS/Email).
+- Admin analytics & CSV export; stats for readings, critical/warning counts, distributions.
+
+Tech Stack:
+- Frontend: React (protected routes, dashboards, thresholds editor, submit readings).
+- Backend: Node.js (Express), modular routes/services, cron (optional weather).
+- DB: Oracle with sequences, triggers, constraints, analytics views.
+
+Security:
+- JWT for auth; middleware for farmer/admin protection.
+- Ownership checks for farmId on farmer endpoints.
+- Secrets via environment variables (no VCS).
+
+Key Backend Endpoints:
+- Auth:
+  - POST /api/auth/login -> { token, farmerId, name }
+  - POST /api/admin/login -> { token }
+- Sensors (Farmer):
+  - POST /api/sensors/reading
+  - GET /api/sensors/readings?farmId?&sensorType?&startDate?&endDate?&status?
+  - GET /api/sensors/thresholds[?sensorType]
+  - PUT /api/sensors/thresholds { sensorType, criticalMin?, criticalMax?, useDefaults? }
+- Sensors (Admin):
+  - POST /api/admin/sensors/reading
+  - GET /api/admin/sensors/alerts?farmId?&sensorType?&startDate?&endDate?
+  - GET /api/admin/sensors/stats
+  - GET /api/admin/sensors/export
+- Operations (examples):
+  - /api/farms, /api/crops, /api/labours, /api/labour-work, /api/equipment, /api/fertilizers, /api/sales
+
+Telemetry Flow:
+1) Farmer submits reading -> SENSOR_DATA(sensor_id=SEQ.NEXTVAL).
+2) Thresholds (custom per farmer/sensorType or defaults) classify status.
+3) If CRITICAL -> insert SENSOR_ALERTS (delivery flags & statuses), send in-app notification; optional SMS/Email.
+4) Admin reviews alerts/stats; export as CSV.
+
+Default Thresholds:
+- SOIL_MOISTURE: 20–80% | SOIL_PH: 5.0–8.5 | TEMPERATURE: 5–40°C | HUMIDITY: 30–95% | LIGHT: 1000–100000 lux.
+
+Database (Oracle):
+- Core tables: FARMER, ADMIN, FARM, CROP, LABOUR, LABOURWORK, EQUIPMENT, EQUIPMENT_MAINTENANCE, FERTILIZER, SALES, WEATHER_DATA, WEATHER_ALERT, ALERT_PREFERENCES.
+- Telemetry: SENSOR_DATA, SENSOR_THRESHOLDS, SENSOR_ALERTS.
+- Sequences: FARMER_SEQ, FARM_SEQ, CROP_SEQ, LABOUR_SEQ, SALES_SEQ, FERTILIZER_SEQ, ADMIN_SEQ, WEATHER_SEQ, EQUIPMENT_SEQ, MAINTENANCE_SEQ, WEATHER_ALERT_SEQ, ALERT_PREF_SEQ, SENSOR_DATA_SEQ, SENSOR_THRESHOLD_SEQ, SENSOR_ALERT_SEQ.
+- Triggers: TRG_FARM_INSERT/UPDATE/DELETE maintain FARMER.TOTAL_FARMS and TOTAL_AREA.
+- Views: FARMER_DASHBOARD, FARM_PERFORMANCE, CROP_ANALYTICS, MONTHLY_REVENUE.
+
+Deployment:
+- Run ISFS_backend/database/final_setup.sql once.
+- Backend: npm i && npm run dev (set DB and JWT envs).
+- Frontend: npm i && npm start.
+
+Testing:
+- Positive: auth, CRUD, thresholds, alerts, exports.
+- Negative: ownership checks (403), invalid sensorType (400), min>max (400), constraint violations (409).
+
+What to do with this context:
+- Code changes must maintain JWT protection and farm ownership checks.
+- DB migrations must respect sequences/triggers and views.
+- Sensor endpoints must never bypass threshold checks or alert logging.

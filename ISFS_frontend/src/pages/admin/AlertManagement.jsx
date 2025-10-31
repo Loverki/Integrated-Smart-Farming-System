@@ -427,7 +427,16 @@ const AlertManagement = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
-                        {new Date(alert.createdDate).toLocaleString()}
+                        {(() => {
+                          const dateStr = alert.createdAt || alert.createdDate;
+                          if (!dateStr) return 'Invalid Date';
+                          try {
+                            const date = new Date(dateStr);
+                            return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
+                          } catch (e) {
+                            return 'Invalid Date';
+                          }
+                        })()}
                       </td>
                     </tr>
                   ))}

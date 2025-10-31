@@ -121,15 +121,15 @@ export default function Farms() {
                     See detailed information about all crops planted across all your farms in one comprehensive view
                   </p>
                   <div className="flex items-center gap-3">
-                    <span className="group px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-sm font-bold border border-white border-opacity-30 hover:bg-opacity-30 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2">
+                    <span className="group px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-sm font-bold border border-white border-opacity-30 hover:bg-opacity-30 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 text-gray-900">
                       <span className="text-lg">📊</span>
                       Performance Metrics
                     </span>
-                    <span className="group px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-sm font-bold border border-white border-opacity-30 hover:bg-opacity-30 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2">
+                    <span className="group px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-sm font-bold border border-white border-opacity-30 hover:bg-opacity-30 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 text-gray-900">
                       <span className="text-lg">🌾</span>
                       Growth Tracking
                     </span>
-                    <span className="group px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-sm font-bold border border-white border-opacity-30 hover:bg-opacity-30 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2">
+                    <span className="group px-4 py-2 bg-white bg-opacity-20 backdrop-blur-sm rounded-full text-sm font-bold border border-white border-opacity-30 hover:bg-opacity-30 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center gap-2 text-gray-900">
                       <span className="text-lg">📈</span>
                       Yield Analysis
                     </span>

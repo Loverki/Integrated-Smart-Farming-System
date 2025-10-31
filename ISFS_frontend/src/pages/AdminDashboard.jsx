@@ -51,6 +51,14 @@ const adminFeatures = [
     route: "/admin/sequences",
     color: "bg-orange-500",
     implemented: true
+  },
+  {
+    name: "Sensor Monitoring",
+    description: "Monitor sensor readings, view alerts, and track critical thresholds.",
+    icon: "📡",
+    route: "/admin/sensors",
+    color: "bg-cyan-500",
+    implemented: true
   }
 ];
 

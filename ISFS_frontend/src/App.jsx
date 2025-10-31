@@ -40,9 +40,11 @@ import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import WeatherDashboard from "./pages/WeatherDashboard";
 import AlertPreferences from "./pages/AlertPreferences";
 import AlertManagement from "./pages/admin/AlertManagement";
+import SensorMonitoring from "./pages/admin/SensorMonitoring";
 import Notifications from "./pages/Notifications";
 import SequenceManagement from "./pages/admin/SequenceManagement";
 import EditProfile from "./pages/EditProfile";
+import AddSensor from "./pages/AddSensor";
 
 function App() {
   return (
@@ -55,6 +57,14 @@ function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Protected routes (require login) */}
+        <Route
+          path="/add-sensor"
+          element={
+            <ProtectedRoute>
+              <AddSensor />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/dashboard"
           element={
@@ -126,6 +136,14 @@ function App() {
           element={
             <AdminProtectedRoute>
               <SequenceManagement />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/sensors"
+          element={
+            <AdminProtectedRoute>
+              <SensorMonitoring />
             </AdminProtectedRoute>
           }
         />

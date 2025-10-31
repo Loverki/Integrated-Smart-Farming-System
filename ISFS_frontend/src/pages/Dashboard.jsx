@@ -532,6 +532,14 @@ export default function Dashboard() {
               <div className="text-sm opacity-90">Register new farm</div>
             </button>
             <button
+              onClick={() => navigate("/add-sensor")}
+              className="bg-gradient-to-r from-cyan-400 to-cyan-500 text-white p-4 rounded-lg hover:from-cyan-500 hover:to-cyan-600 transition-all transform hover:scale-105"
+            >
+              <div className="text-2xl mb-2">📡</div>
+              <div className="font-semibold">Add Sensor</div>
+              <div className="text-sm opacity-90">Configure thresholds</div>
+            </button>
+            <button
               onClick={() => navigate("/add-crop")}
               className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white p-4 rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition-all transform hover:scale-105"
             >

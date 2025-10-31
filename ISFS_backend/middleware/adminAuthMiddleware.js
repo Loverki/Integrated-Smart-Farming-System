@@ -36,9 +36,9 @@ export const protectAdmin = async (req, res, next) => {
       `SELECT STATUS FROM ADMIN WHERE ADMIN_ID = :admin_id`,
       { admin_id: decoded.admin_id }
     );
-    await connection.close();
-
+    
     if (!result.rows || result.rows.length === 0) {
+      await connection.close();
       console.log(`❌ Admin ${decoded.admin_id} NOT FOUND in database (deleted or never existed)`);
       return res.status(401).json({ 
         message: 'Admin account not found.',
@@ -46,6 +46,8 @@ export const protectAdmin = async (req, res, next) => {
         userDeleted: true
       });
     }
+    
+    await connection.close();
 
     const admin = result.rows[0];
     if (admin.STATUS !== 'ACTIVE') {

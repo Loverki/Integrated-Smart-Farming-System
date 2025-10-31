@@ -11,7 +11,10 @@ app.use(cors());
 app.use(express.json());
 
 // Health check endpoint
-app.get("/", (req, res) => res.send("Server is running"));
+app.get("/", (req, res) =>{
+  console.log("Server is running");
+  res.send("Server is running")
+});
 
 // Safe database connection function
 async function connectDB() {
@@ -83,6 +86,23 @@ const startServer = async () => {
     
     // Notification routes (protected - requires farmer authentication)
     app.use("/api/notifications", protect, notificationRoutes);
+    
+    // Sensor monitoring routes (protected - requires farmer authentication)
+    const sensorModule = await import("./routes/sensorRoutes.js");
+    const sensorRoutes = sensorModule.default;
+    const sensorAdminRoutes = sensorModule.adminRouter;
+    
+    if (!sensorAdminRoutes) {
+      console.error("❌ ERROR: sensorAdminRoutes is undefined! Check sensorRoutes.js exports.");
+    } else {
+      console.log("✅ Sensor admin routes loaded:", sensorAdminRoutes.stack.length, "routes");
+    }
+    
+    app.use("/api/sensors", protect, sensorRoutes);
+    
+    // Sensor admin routes (must be after /api/admin routes to use admin middleware)
+    app.use("/api/admin/sensors", protectAdmin, sensorAdminRoutes);
+    console.log("✅ Sensor routes registered at /api/sensors and /api/admin/sensors");
     
     // Sequence management routes (protected - admin only)
     app.use("/api/sequences", sequenceRoutes);

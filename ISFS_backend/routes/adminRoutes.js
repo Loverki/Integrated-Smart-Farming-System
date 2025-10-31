@@ -827,25 +827,148 @@ router.post("/alerts/send", protectAdmin, async (req, res) => {
       }
     );
 
-    // Fetch phones and send SMS
+    // Fetch phones and emails, then send SMS and emails
     const { getConnection } = await import('../database/connection.js');
     connection = await getConnection();
     const phones = [];
+    const emails = [];
+    
+    console.log(`[Admin Alerts] Fetching phone numbers and emails for ${farmerIds.length} farmer(s)`);
+    console.log(`[Admin Alerts] Farmer IDs:`, farmerIds);
+    
     for (const id of farmerIds) {
       try {
+        // Ensure id is a number (in case it comes as string from frontend)
+        const farmerId = typeof id === 'string' ? parseInt(id, 10) : id;
+        console.log(`[Admin Alerts] Querying phone and email for farmer_id: ${farmerId} (type: ${typeof farmerId})`);
+        
         const r = await connection.execute(
-          `SELECT phone FROM FARMER WHERE farmer_id = :id`,
-          { id }
+          `SELECT PHONE, EMAIL FROM FARMER WHERE FARMER_ID = :id`,
+          { id: farmerId }
         );
-        const phone = r.rows?.[0]?.[0];
-        if (phone) phones.push(phone);
-      } catch (_) {}
+        
+        console.log(`[Admin Alerts] Query result for farmer_id ${farmerId}:`);
+        console.log(`[Admin Alerts] - Rows count:`, r.rows?.length || 0);
+        console.log(`[Admin Alerts] - MetaData:`, r.metaData?.map(c => ({ name: c.name, dbType: c.dbType })) || 'N/A');
+        console.log(`[Admin Alerts] - First row:`, r.rows?.[0]);
+        console.log(`[Admin Alerts] - First row type:`, typeof r.rows?.[0], `isArray:`, Array.isArray(r.rows?.[0]));
+        
+        if (r.rows && r.rows.length > 0) {
+          const row = r.rows[0];
+          let phone = null;
+          let email = null;
+          
+          // Oracle returns rows as arrays by default
+          if (Array.isArray(row)) {
+            phone = row[0];
+            email = row[1];
+            console.log(`[Admin Alerts] Phone from array[0]:`, phone);
+            console.log(`[Admin Alerts] Email from array[1]:`, email);
+          } else if (row !== null && row !== undefined) {
+            // If not array, might be an object with uppercase keys (Oracle outFormat)
+            if (typeof row === 'object' && 'PHONE' in row) {
+              phone = row.PHONE;
+              email = row.EMAIL;
+              console.log(`[Admin Alerts] Phone from object.PHONE:`, phone);
+              console.log(`[Admin Alerts] Email from object.EMAIL:`, email);
+            } else {
+              phone = row;
+              console.log(`[Admin Alerts] Phone from direct value:`, phone);
+            }
+          }
+          
+          // Process phone
+          if (phone !== null && phone !== undefined) {
+            const phoneStr = String(phone).trim();
+            console.log(`[Admin Alerts] Phone after String() and trim:`, phoneStr);
+            
+            if (phoneStr !== '' && phoneStr !== 'undefined' && phoneStr !== 'null' && phoneStr !== '[object Object]') {
+              phones.push(phoneStr);
+              console.log(`[Admin Alerts] ✓ Added phone: ${phoneStr}`);
+            } else {
+              console.warn(`[Admin Alerts] ⚠ Phone is empty/invalid after conversion for farmer_id: ${farmerId}`);
+            }
+          } else {
+            console.warn(`[Admin Alerts] ⚠ Phone is NULL/undefined for farmer_id: ${farmerId}`);
+          }
+
+          // Process email
+          if (email !== null && email !== undefined) {
+            const emailStr = String(email).trim();
+            console.log(`[Admin Alerts] Email after String() and trim:`, emailStr);
+            
+            if (emailStr !== '' && emailStr !== 'undefined' && emailStr !== 'null' && emailStr !== '[object Object]') {
+              // Basic email validation
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (emailRegex.test(emailStr)) {
+                emails.push(emailStr);
+                console.log(`[Admin Alerts] ✓ Added email: ${emailStr}`);
+              } else {
+                console.warn(`[Admin Alerts] ⚠ Email is invalid format for farmer_id: ${farmerId} - ${emailStr}`);
+              }
+            } else {
+              console.warn(`[Admin Alerts] ⚠ Email is empty/invalid after conversion for farmer_id: ${farmerId}`);
+            }
+          } else {
+            console.warn(`[Admin Alerts] ⚠ Email is NULL/undefined for farmer_id: ${farmerId}`);
+          }
+        } else {
+          console.warn(`[Admin Alerts] ⚠ No farmer found with farmer_id: ${farmerId}`);
+        }
+      } catch (err) {
+        console.error(`[Admin Alerts] ✗ Error fetching phone/email for farmer_id ${id}:`, err.message);
+      }
+    }
+    
+    console.log(`[Admin Alerts] Total phones collected: ${phones.length}`);
+    console.log(`[Admin Alerts] Phone numbers:`, phones);
+    console.log(`[Admin Alerts] Total emails collected: ${emails.length}`);
+    console.log(`[Admin Alerts] Email addresses:`, emails);
+
+    // Track farmers with missing phones for reporting
+    const farmersWithoutPhones = [];
+    if (phones.length === 0 && farmerIds.length > 0) {
+      // Only query if we have no phones but have farmer IDs
+      for (const id of farmerIds) {
+        const farmerId = typeof id === 'string' ? parseInt(id, 10) : id;
+        try {
+          const farmerCheck = await connection.execute(
+            `SELECT farmer_id, name FROM FARMER WHERE farmer_id = :id`,
+            { id: farmerId }
+          );
+          
+          if (farmerCheck.rows && farmerCheck.rows.length > 0) {
+            farmersWithoutPhones.push({
+              farmer_id: farmerCheck.rows[0][0],
+              name: farmerCheck.rows[0][1]
+            });
+          }
+        } catch (err) {
+          console.error(`[Admin Alerts] Error checking farmer ${farmerId}:`, err.message);
+        }
+      }
     }
 
-    const { sendBulkSms } = await import('../services/smsService.js');
-    const smsResults = await sendBulkSms(phones, message);
+    // Send SMS
+    let smsResults = [];
+    if (phones.length > 0) {
+      const { sendBulkSms } = await import('../services/smsService.js');
+      smsResults = await sendBulkSms(phones, message);
+    } else {
+      console.warn(`[Admin Alerts] No phone numbers available - SMS skipped`);
+    }
 
-    res.json({
+    // Send Emails
+    let emailResults = [];
+    if (emails.length > 0) {
+      const { sendBulkEmail } = await import('../services/emailService.js');
+      const emailSubject = title || alertType || 'Important Alert from ISFS';
+      emailResults = await sendBulkEmail(emails, emailSubject, message);
+    } else {
+      console.warn(`[Admin Alerts] No email addresses available - Email skipped`);
+    }
+
+    const response = {
       message: "Notifications processed",
       web: {
         totalSent: webResults.filter(r => r.success).length,
@@ -855,9 +978,25 @@ router.post("/alerts/send", protectAdmin, async (req, res) => {
         totalAttempted: phones.length,
         totalSent: smsResults.filter(r => r.success).length,
         totalFailed: smsResults.filter(r => !r.success && !r.disabled).length,
-        disabled: smsResults.length > 0 ? smsResults.every(r => r.disabled) : false
+        disabled: smsResults.length > 0 ? smsResults.every(r => r.disabled) : false,
+        skipped: phones.length === 0 && farmerIds.length > 0
+      },
+      email: {
+        totalAttempted: emails.length,
+        totalSent: emailResults.filter(r => r.success).length,
+        totalFailed: emailResults.filter(r => !r.success && !r.disabled).length,
+        disabled: emailResults.length > 0 ? emailResults.every(r => r.disabled) : false,
+        skipped: emails.length === 0 && farmerIds.length > 0
       }
-    });
+    };
+
+    // Add warnings if farmers have missing contact info
+    if (farmersWithoutPhones.length > 0) {
+      response.warning = `${farmersWithoutPhones.length} farmer(s) have no phone number. SMS not sent to these farmers.`;
+      response.farmersWithoutPhones = farmersWithoutPhones;
+    }
+
+    res.json(response);
   } catch (error) {
     console.error("Error sending notifications:", error);
     res.status(500).json({ 
@@ -905,21 +1044,75 @@ router.post("/alerts/broadcast", protectAdmin, async (req, res) => {
       }
     );
 
-    // Fetch phones and send SMS
+    // Fetch phones and emails, then send SMS and emails
     const phones = [];
+    const emails = [];
+    
+    console.log(`[Admin Alerts Broadcast] Fetching phone numbers and emails for ${farmerIds.length} farmer(s)`);
+    console.log(`[Admin Alerts Broadcast] Farmer IDs:`, farmerIds);
+    
     for (const id of farmerIds) {
       try {
+        // Ensure id is a number (in case it comes as string from frontend)
+        const farmerId = typeof id === 'string' ? parseInt(id, 10) : id;
+        console.log(`[Admin Alerts Broadcast] Querying phone and email for farmer_id: ${farmerId}`);
+        
         const r = await connection.execute(
-          `SELECT phone FROM FARMER WHERE farmer_id = :id`,
-          { id }
+          `SELECT PHONE, EMAIL FROM FARMER WHERE FARMER_ID = :id`,
+          { id: farmerId }
         );
-        const phone = r.rows?.[0]?.[0];
-        if (phone) phones.push(phone);
-      } catch (_) {}
+        
+        if (r.rows && r.rows.length > 0) {
+          const row = r.rows[0];
+          let phone = null;
+          let email = null;
+          
+          // Handle Oracle result format
+          if (Array.isArray(row)) {
+            phone = row[0];
+            email = row[1];
+          } else if (row && typeof row === 'object') {
+            phone = row.PHONE;
+            email = row.EMAIL;
+          }
+          
+          // Process phone
+          if (phone && String(phone).trim() !== '') {
+            phones.push(String(phone).trim());
+            console.log(`[Admin Alerts Broadcast] ✓ Added phone: ${phone}`);
+          }
+          
+          // Process email
+          if (email && String(email).trim() !== '') {
+            const emailStr = String(email).trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (emailRegex.test(emailStr)) {
+              emails.push(emailStr);
+              console.log(`[Admin Alerts Broadcast] ✓ Added email: ${emailStr}`);
+            }
+          }
+        } else {
+          console.warn(`[Admin Alerts Broadcast] ⚠ No farmer found with farmer_id: ${farmerId}`);
+        }
+      } catch (err) {
+        console.error(`[Admin Alerts Broadcast] ✗ Error fetching phone/email for farmer_id ${id}:`, err.message);
+      }
     }
+    
+    console.log(`[Admin Alerts Broadcast] Total phones collected: ${phones.length}`);
+    console.log(`[Admin Alerts Broadcast] Total emails collected: ${emails.length}`);
 
+    // Send SMS
     const { sendBulkSms } = await import('../services/smsService.js');
     const smsResults = await sendBulkSms(phones, message);
+
+    // Send Emails
+    let emailResults = [];
+    if (emails.length > 0) {
+      const { sendBulkEmail } = await import('../services/emailService.js');
+      const emailSubject = title || 'Broadcast Message from ISFS';
+      emailResults = await sendBulkEmail(emails, emailSubject, message);
+    }
 
     res.json({
       message: "Broadcast processed",
@@ -933,6 +1126,12 @@ router.post("/alerts/broadcast", protectAdmin, async (req, res) => {
         totalSent: smsResults.filter(r => r.success).length,
         totalFailed: smsResults.filter(r => !r.success && !r.disabled).length,
         disabled: smsResults.length > 0 ? smsResults.every(r => r.disabled) : false
+      },
+      email: {
+        totalAttempted: emails.length,
+        totalSent: emailResults.filter(r => r.success).length,
+        totalFailed: emailResults.filter(r => !r.success && !r.disabled).length,
+        disabled: emailResults.length > 0 ? emailResults.every(r => r.disabled) : false
       }
     });
   } catch (error) {
@@ -963,25 +1162,65 @@ router.get("/alerts/history", protectAdmin, async (req, res) => {
     const notificationsWithNames = await Promise.all(
       allNotifications.map(async (notification) => {
         try {
-          const result = await connection.execute(
-            `SELECT name FROM FARMER WHERE farmer_id = :farmer_id`,
+          // Get farmer name - handle Oracle result format (array or object)
+          const farmerResult = await connection.execute(
+            `SELECT NAME FROM FARMER WHERE FARMER_ID = :farmer_id`,
             { farmer_id: notification.farmerId }
           );
 
+          let farmerName = 'Unknown';
+          if (farmerResult.rows && farmerResult.rows.length > 0) {
+            const row = farmerResult.rows[0];
+            if (Array.isArray(row)) {
+              farmerName = row[0] || 'Unknown';
+            } else if (row && row.NAME) {
+              farmerName = row.NAME;
+            } else if (typeof row === 'string') {
+              farmerName = row;
+            }
+          }
+
+          // Get first active farm name for the farmer (optional - notifications are farmer-level)
+          let farmName = null;
+          try {
+            const farmResult = await connection.execute(
+              `SELECT FARM_NAME FROM FARM WHERE FARMER_ID = :farmer_id AND STATUS = 'ACTIVE' AND ROWNUM = 1`,
+              { farmer_id: notification.farmerId }
+            );
+            if (farmResult.rows && farmResult.rows.length > 0) {
+              const farmRow = farmResult.rows[0];
+              if (Array.isArray(farmRow)) {
+                farmName = farmRow[0];
+              } else if (farmRow && farmRow.FARM_NAME) {
+                farmName = farmRow.FARM_NAME;
+              } else if (typeof farmRow === 'string') {
+                farmName = farmRow;
+              }
+            }
+          } catch (farmError) {
+            // Farm lookup is optional, continue without it
+            console.debug(`[Admin Alerts] Could not fetch farm for farmer ${notification.farmerId}:`, farmError.message);
+          }
+
           return {
             ...notification,
-            farmerName: result.rows[0]?.[0] || 'Unknown',
+            farmerName: farmerName || 'Unknown',
+            farmName: farmName || null,
             alertId: notification.id,
             alertType: notification.type,
+            createdDate: notification.createdAt, // Add for backward compatibility
             status: 'SENT', // All in-memory notifications are sent
             isRead: notification.read
           };
         } catch (error) {
+          console.error(`[Admin Alerts] Error fetching data for notification ${notification.id}:`, error.message);
           return {
             ...notification,
             farmerName: 'Unknown',
+            farmName: null,
             alertId: notification.id,
             alertType: notification.type,
+            createdDate: notification.createdAt, // Add for backward compatibility
             status: 'SENT',
             isRead: notification.read
           };
